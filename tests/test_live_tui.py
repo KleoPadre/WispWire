@@ -837,7 +837,16 @@ def test_late_live_details_event_is_ignored_after_widgets_unmount() -> None:
         ((80, 24), ["No.", "Source", "Protocol", "Info"]),
         (
             (120, 24),
-            ["No.", "Time", "Source", "Destination", "Protocol", "Length", "Info"],
+            [
+                "No.",
+                "Time",
+                "Source",
+                "Destination",
+                "URL",
+                "Protocol",
+                "Length",
+                "Info",
+            ],
         ),
     ],
 )

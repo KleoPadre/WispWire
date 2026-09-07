@@ -20,3 +20,4 @@ class PacketSummary:
     protocol: str
     length: int
     info: str
+    url: str = ""

@@ -13,6 +13,7 @@ def packet(
     number: int,
     protocol: str = "DNS",
     info: str = "Запрос",
+    url: str = "",
 ) -> PacketSummary:
     return PacketSummary(
         number=number,
@@ -22,6 +23,7 @@ def packet(
         protocol=protocol,
         length=74,
         info=info,
+        url=url,
     )
 
 
@@ -41,6 +43,29 @@ def test_file_packet_source_load_indexes_initial_packets(tmp_path: Path) -> None
         assert source.load(limit=10) == packets
         assert source.query(PacketQuery(info_query="telegram", limit=10)).packets == (
             packets[1],
+        )
+    finally:
+        source.close()
+
+
+def test_file_packet_source_keeps_url_domain_after_info_query(tmp_path: Path) -> None:
+    packets = (
+        packet(number=1, info="Первый запрос"),
+        packet(number=2, info="Ответ telegram", url="api.telegram.org"),
+    )
+    source = FilePacketSource(
+        tmp_path / "capture.pcapng",
+        Path("tshark"),
+        storage=SessionStorage(cache_root=tmp_path / "sessions", pid=123),
+        iter_summaries=lambda *_args, **_kwargs: iter(packets),
+    )
+
+    try:
+        source.load(limit=10)
+
+        assert (
+            source.query(PacketQuery(info_query="telegram", limit=10)).packets[0].url
+            == "api.telegram.org"
         )
     finally:
         source.close()

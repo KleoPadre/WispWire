@@ -16,6 +16,7 @@ CREATE TABLE packets (
     relative_time TEXT NOT NULL,
     source TEXT NOT NULL,
     destination TEXT NOT NULL,
+    url TEXT NOT NULL,
     protocol TEXT NOT NULL,
     length INTEGER NOT NULL,
     info TEXT NOT NULL,
@@ -50,13 +51,13 @@ END
 """
 INSERT_PACKET_SQL = """
 INSERT INTO packets (global_number, segment_id, segment_frame_number, captured_at,
-relative_time, source, destination, protocol, length, info, info_casefold)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+relative_time, source, destination, url, protocol, length, info, info_casefold)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 """
 SELECT_PACKET_COLUMNS_SQL = """
 SELECT packets.rowid AS row_id, packets.global_number, packets.segment_id,
 packets.segment_frame_number, packets.captured_at, packets.relative_time,
-packets.source, packets.destination, packets.protocol, packets.length,
+packets.source, packets.destination, packets.url, packets.protocol, packets.length,
 packets.info, packets.info_casefold
 """
 
@@ -72,6 +73,7 @@ class PacketRecord:
     relative_time: str
     source: str
     destination: str
+    url: str
     protocol: str
     length: int
     info: str
@@ -89,6 +91,7 @@ class IndexedPacket:
     relative_time: str
     source: str
     destination: str
+    url: str
     protocol: str
     length: int
     info: str
@@ -192,6 +195,7 @@ def _record_to_row(record: PacketRecord) -> tuple[int | str | None, ...]:
         record.relative_time,
         record.source,
         record.destination,
+        record.url,
         record.protocol,
         record.length,
         record.info,
@@ -209,6 +213,7 @@ def _packet_from_row(row: sqlite3.Row) -> IndexedPacket:
         relative_time=row["relative_time"],
         source=row["source"],
         destination=row["destination"],
+        url=row["url"],
         protocol=row["protocol"],
         length=row["length"],
         info=row["info"],

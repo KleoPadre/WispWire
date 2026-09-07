@@ -219,6 +219,7 @@ def _records_from_packets(
             relative_time=packet.relative_time,
             source=packet.source,
             destination=packet.destination,
+            url=packet.url,
             protocol=packet.protocol,
             length=packet.length,
             info=packet.info,

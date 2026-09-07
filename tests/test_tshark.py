@@ -221,6 +221,77 @@ def test_build_fields_command_uses_read_only_tshark_fields() -> None:
         "frame.len",
         "-e",
         "_ws.col.Info",
+        "-e",
+        "http.host",
+        "-e",
+        "http.request.full_uri",
+        "-e",
+        "http2.headers.authority",
+        "-e",
+        "tls.handshake.extensions_server_name",
+    ]
+
+
+def test_parse_packet_row_reads_domain_from_http_host_without_path() -> None:
+    row = (
+        '"7"\t"0.250000"\t"10.0.0.1"\t"10.0.0.2"\t"HTTP"\t"82"'
+        '\t"GET /private/path HTTP/1.1"\t"api.example.com:8443"\t""\t""\t""\n'
+    )
+
+    packet = parse_packet_row(row)
+
+    assert packet.url == "api.example.com"
+
+
+def test_parse_packet_row_falls_back_to_domain_from_full_uri() -> None:
+    row = (
+        '"7"\t"0.250000"\t"10.0.0.1"\t"10.0.0.2"\t"HTTP"\t"82"'
+        '\t"GET /private/path HTTP/1.1"\t""\t"https://shop.example.org/private/path"'
+        '\t""\t""\n'
+    )
+
+    packet = parse_packet_row(row)
+
+    assert packet.url == "shop.example.org"
+
+
+def test_parse_packet_row_falls_back_to_tls_sni() -> None:
+    row = (
+        '"7"\t"0.250000"\t"10.0.0.1"\t"10.0.0.2"\t"TLSv1.3"\t"82"'
+        '\t"Client Hello"\t""\t""\t""\t"secure.example.net"\n'
+    )
+
+    packet = parse_packet_row(row)
+
+    assert packet.url == "secure.example.net"
+
+
+def test_parse_packet_row_leaves_url_empty_without_domain_fields() -> None:
+    row = (
+        '"7"\t"0.250000"\t"10.0.0.1"\t"10.0.0.2"\t"DNS"\t"82"'
+        '\t"Query example.com"\t""\t""\t""\t""\n'
+    )
+
+    packet = parse_packet_row(row)
+
+    assert packet.url == ""
+
+
+def test_build_fields_command_keeps_packet_columns_before_domain_candidates() -> None:
+    command = build_fields_command(Path("/opt/bin/tshark"), Path("capture.pcapng"))
+
+    assert command[15::2] == [
+        "frame.number",
+        "frame.time_relative",
+        "_ws.col.Source",
+        "_ws.col.Destination",
+        "_ws.col.Protocol",
+        "frame.len",
+        "_ws.col.Info",
+        "http.host",
+        "http.request.full_uri",
+        "http2.headers.authority",
+        "tls.handshake.extensions_server_name",
     ]
 
 
@@ -299,7 +370,7 @@ def test_parse_packet_row_preserves_tshark_doubled_quotes_and_trailing_backslash
 ):
     row = (
         '"7"\t"0.250000"\t"10.0.0.1"\t"10.0.0.2"\t"DNS"\t"82"'
-        '\t"Query ""example""\\\\"\n'
+        '\t"Query ""example""\\\\"\t""\t""\t""\t""\n'
     )
 
     packet = parse_packet_row(row)
@@ -308,7 +379,9 @@ def test_parse_packet_row_preserves_tshark_doubled_quotes_and_trailing_backslash
 
 
 def test_parse_packet_row_reports_malformed_tsv() -> None:
-    row = '"7"\t"0.250000"\t"10.0.0.1"\t"10.0.0.2"\t"DNS"\t"82"\t"Query\n'
+    row = (
+        '"7"\t"0.250000"\t"10.0.0.1"\t"10.0.0.2"\t"DNS"\t"82"\t"Query\t""\t""\t""\t""\n'
+    )
 
     with pytest.raises(TsharkReadError, match="Некорректн"):
         parse_packet_row(row)
@@ -318,8 +391,8 @@ def test_iter_packet_summaries_stops_after_limit() -> None:
     process = LimitProcess(
         iter(
             [
-                '"1"\t"0.000000"\t"a"\t"b"\t"DNS"\t"72"\t"Первый"\n',
-                '"2"\t"0.100000"\t"c"\t"d"\t"TCP"\t"64"\t"Второй"\n',
+                '"1"\t"0.000000"\t"a"\t"b"\t"DNS"\t"72"\t"Первый"\t""\t""\t""\t""\n',
+                '"2"\t"0.100000"\t"c"\t"d"\t"TCP"\t"64"\t"Второй"\t""\t""\t""\t""\n',
             ]
         )
     )
@@ -340,7 +413,9 @@ def test_iter_packet_summaries_stops_after_limit() -> None:
 
 def test_iter_packet_summaries_passes_display_filter_to_tshark() -> None:
     commands: list[list[str]] = []
-    process = FakeProcess(iter(['"1"\t"0.0"\t"a"\t"b"\t"UDP"\t"42"\t"Match"\n']))
+    process = FakeProcess(
+        iter(['"1"\t"0.0"\t"a"\t"b"\t"UDP"\t"42"\t"Match"\t""\t""\t""\t""\n'])
+    )
 
     packets = list(
         iter_packet_summaries(
@@ -405,7 +480,7 @@ def test_iter_packet_summaries_reports_malformed_row_after_previous_packets() ->
     process = FakeProcess(
         iter(
             [
-                '"1"\t"0.000000"\t"a"\t"b"\t"DNS"\t"72"\t"Первый"\n',
+                '"1"\t"0.000000"\t"a"\t"b"\t"DNS"\t"72"\t"Первый"\t""\t""\t""\t""\n',
                 '"2"\t"0.100000"\t"c"\t"d"\t"TCP"\t"64"\n',
             ]
         )
@@ -418,7 +493,7 @@ def test_iter_packet_summaries_reports_malformed_row_after_previous_packets() ->
     )
 
     assert next(packets).number == 1
-    with pytest.raises(TsharkReadError, match="семь"):
+    with pytest.raises(TsharkReadError, match="одиннадцать"):
         next(packets)
 
     assert process.terminate_called

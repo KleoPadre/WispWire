@@ -4,6 +4,7 @@ import subprocess
 from collections.abc import Callable, Iterator
 from pathlib import Path
 from threading import Thread
+from urllib.parse import urlsplit
 
 from wispwire.packets import PacketDetails, PacketSummary
 
@@ -116,6 +117,14 @@ def build_fields_command(
             "frame.len",
             "-e",
             "_ws.col.Info",
+            "-e",
+            "http.host",
+            "-e",
+            "http.request.full_uri",
+            "-e",
+            "http2.headers.authority",
+            "-e",
+            "tls.handshake.extensions_server_name",
         ]
     )
     return command
@@ -169,8 +178,10 @@ def parse_packet_row(row: str) -> PacketSummary:
         fields = next(csv.reader([row], delimiter="\t", quotechar='"', strict=True))
     except csv.Error as error:
         raise TsharkReadError("Некорректная строка TSV в выводе TShark.") from error
-    if len(fields) != 7:
-        raise TsharkReadError("Строка вывода TShark должна содержать ровно семь полей.")
+    if len(fields) != 11:
+        raise TsharkReadError(
+            "Строка вывода TShark должна содержать ровно одиннадцать полей."
+        )
 
     try:
         number = int(fields[0])
@@ -188,7 +199,32 @@ def parse_packet_row(row: str) -> PacketSummary:
         protocol=fields[4],
         length=length,
         info=fields[6],
+        url=_domain_from_fields(fields[7:11]),
     )
+
+
+def _domain_from_fields(fields: list[str]) -> str:
+    for value in fields:
+        domain = _domain_from_value(value)
+        if domain:
+            return domain
+    return ""
+
+
+def _domain_from_value(value: str) -> str:
+    candidate = value.strip()
+    if not candidate:
+        return ""
+
+    if "://" in candidate:
+        hostname = urlsplit(candidate).hostname
+        return hostname or ""
+
+    if candidate.startswith("["):
+        end = candidate.find("]")
+        return candidate[1:end] if end > 1 else ""
+
+    return candidate.split("/", 1)[0].rsplit(":", 1)[0]
 
 
 def iter_packet_summaries(

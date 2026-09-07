@@ -33,13 +33,14 @@ def packet_row_values(packet: PacketSummary, wide: bool) -> tuple[Text, ...]:
         Text(packet.relative_time),
         Text(packet.source),
         Text(packet.destination),
+        Text(packet.url),
         protocol_badge(packet.protocol),
         Text(str(packet.length)),
         Text(packet.info),
     )
     if wide:
         return values
-    return values[0], values[2], values[4], values[6]
+    return values[0], values[2], values[5], values[7]
 
 
 def protocol_badge(protocol: str) -> Text:
@@ -62,6 +63,7 @@ def rebuild_packet_table(
             "Time",
             "Source",
             "Destination",
+            "URL",
             "Protocol",
             "Length",
             "Info",
