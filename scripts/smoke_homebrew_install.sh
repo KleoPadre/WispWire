@@ -2,7 +2,7 @@
 set -euo pipefail
 
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
-version="0.1.3"
+version="0.1.4"
 formula_source="${project_root}/packaging/homebrew/Formula/wispwire.rb"
 work_dir="$(mktemp -d /tmp/wispwire-homebrew-smoke.XXXXXX)"
 dist_dir="${work_dir}/dist"
@@ -20,7 +20,15 @@ trap cleanup EXIT
 cd "${project_root}"
 SOURCE_DATE_EPOCH=1788480000 .venv/bin/python -m hatchling build -t sdist -d "${dist_dir}"
 
-sdist_sha="$(shasum -a 256 "${sdist}" | awk '{print $1}')"
+sdist_sha="$(
+  python3 - "${sdist}" <<'PY'
+import hashlib
+import sys
+from pathlib import Path
+
+print(hashlib.sha256(Path(sys.argv[1]).read_bytes()).hexdigest())
+PY
+)"
 mkdir -p "$(dirname "${formula}")"
 cp "${formula_source}" "${formula}"
 
@@ -34,7 +42,7 @@ sdist_path = Path(sys.argv[2])
 sdist_sha = sys.argv[3]
 formula = formula_path.read_text()
 formula = formula.replace(
-    'url "https://github.com/KleoPadre/WispWire/releases/download/v0.1.3/wispwire-0.1.3.tar.gz"',
+    'url "https://github.com/KleoPadre/WispWire/releases/download/v0.1.4/wispwire-0.1.4.tar.gz"',
     f'url "file://{sdist_path}"',
 )
 formula = re.sub(r'sha256 "[0-9a-f]{64}"', f'sha256 "{sdist_sha}"', formula, count=1)

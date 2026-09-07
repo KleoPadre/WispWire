@@ -147,7 +147,7 @@ Live-захват требует ручной проверки на реальн
 
 ```bash
 git status --short --branch
-git ls-files | rg '(^|/)(\.claude|\.codex|\.cursor|\.gemini|\.vscode|\.codegraph|\.mcp\.json|GEMINI\.md|.*\.pcap|.*\.pcapng)'
+git ls-files | rg '(^|/)(\.claude|\.codex|\.cursor|\.gemini|\.vscode|\.codegraph|\.mcp\.json|AGENTS\.md|GEMINI\.md|docs/superpowers|.*\.pcap|.*\.pcapng)'
 ```
 
 Если `rg` не нашёл совпадений и вышел с кодом 1, это ожидаемый чистый результат.
@@ -161,12 +161,12 @@ git ls-files | rg '(^|/)(\.claude|\.codex|\.cursor|\.gemini|\.vscode|\.codegraph
 .venv/bin/mypy src
 .venv/bin/wispwire doctor
 .venv/bin/python -m hatchling build -t sdist -t wheel
-shasum -a 256 dist/wispwire-0.1.3.tar.gz dist/wispwire-0.1.3-py3-none-any.whl
-git tag v0.1.3
-git push origin main v0.1.3
+shasum -a 256 dist/wispwire-0.1.4.tar.gz dist/wispwire-0.1.4-py3-none-any.whl
+git tag v0.1.4
+git push origin main v0.1.4
 ```
 
-После появления GitHub Release нужно сверить SHA-256 `wispwire-0.1.3.tar.gz`
+После появления GitHub Release нужно сверить SHA-256 `wispwire-0.1.4.tar.gz`
 с `SHA256SUMS.txt` и использовать этот SHA в Homebrew formula. Formula должна
 ставить `wireshark` и Python-зависимости автоматически. `wireshark-chmodbpf`
 остаётся отдельной macOS cask-зависимостью уровня прав захвата: Homebrew formula
