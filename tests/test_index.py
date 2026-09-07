@@ -11,7 +11,7 @@ from wispwire.index import (
 from wispwire.sqlite_support import SqliteFeatureStatus
 
 
-def record(global_number: int, *, info: str = "Запрос") -> PacketRecord:
+def record(global_number: int, *, info: str = "Запрос", url: str = "") -> PacketRecord:
     return PacketRecord(
         global_number=global_number,
         segment_id="segment-1",
@@ -20,6 +20,7 @@ def record(global_number: int, *, info: str = "Запрос") -> PacketRecord:
         relative_time=f"{global_number / 10:.6f}",
         source="192.0.2.1",
         destination="192.0.2.53",
+        url=url,
         protocol="DNS",
         length=82,
         info=info,
@@ -29,7 +30,7 @@ def record(global_number: int, *, info: str = "Запрос") -> PacketRecord:
 def test_append_stores_every_packet_field(tmp_path: Path) -> None:
     index = PacketIndex(tmp_path / "packets.sqlite3")
 
-    appended = index.append([record(7, info="Запрос TeLeGrAm")])
+    appended = index.append([record(7, info="Запрос TeLeGrAm", url="api.example.com")])
 
     page = index.list_page(limit=10)
     assert appended == 1
@@ -41,6 +42,7 @@ def test_append_stores_every_packet_field(tmp_path: Path) -> None:
     assert page.items[0].relative_time == "0.700000"
     assert page.items[0].source == "192.0.2.1"
     assert page.items[0].destination == "192.0.2.53"
+    assert page.items[0].url == "api.example.com"
     assert page.items[0].protocol == "DNS"
     assert page.items[0].length == 82
     assert page.items[0].info == "Запрос TeLeGrAm"

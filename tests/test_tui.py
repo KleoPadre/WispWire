@@ -15,7 +15,12 @@ from wispwire.tshark import TsharkReadError, read_packet_details
 from wispwire.tui import WispWireApp
 
 
-def packet(number: int, protocol: str = "DNS", info: str = "Запрос") -> PacketSummary:
+def packet(
+    number: int,
+    protocol: str = "DNS",
+    info: str = "Запрос",
+    url: str = "",
+) -> PacketSummary:
     return PacketSummary(
         number=number,
         relative_time="0.000000",
@@ -24,6 +29,7 @@ def packet(number: int, protocol: str = "DNS", info: str = "Запрос") -> Pa
         protocol=protocol,
         length=72,
         info=info,
+        url=url,
     )
 
 
@@ -49,15 +55,30 @@ def test_packet_row_values_uses_literal_text_in_narrow_mode() -> None:
 def test_packet_row_values_styles_known_protocol_badges() -> None:
     values = packet_row_values(packet(7, protocol="TLSv1.2"), wide=True)
 
-    assert str(values[4]) == "TLSv1.2"
-    assert values[4].style == "bold green on #12382d"
+    assert str(values[5]) == "TLSv1.2"
+    assert values[5].style == "bold green on #12382d"
 
 
 def test_packet_row_values_keeps_unknown_protocol_readable() -> None:
     values = packet_row_values(packet(7, protocol="CUSTOM"), wide=True)
 
-    assert str(values[4]) == "CUSTOM"
-    assert values[4].style == "bold white on #303030"
+    assert str(values[5]) == "CUSTOM"
+    assert values[5].style == "bold white on #303030"
+
+
+def test_packet_row_values_shows_url_domain_in_wide_mode() -> None:
+    values = packet_row_values(packet(7, url="api.example.com"), wide=True)
+
+    assert [str(value) for value in values] == [
+        "7",
+        "0.000000",
+        "10.0.0.1",
+        "10.0.0.2",
+        "api.example.com",
+        "DNS",
+        "72",
+        "Запрос",
+    ]
 
 
 @pytest.mark.asyncio
@@ -421,7 +442,16 @@ async def test_resize_keeps_selected_packet_details_and_rows() -> None:
         ((80, 24), ["No.", "Source", "Protocol", "Info"]),
         (
             (120, 24),
-            ["No.", "Time", "Source", "Destination", "Protocol", "Length", "Info"],
+            [
+                "No.",
+                "Time",
+                "Source",
+                "Destination",
+                "URL",
+                "Protocol",
+                "Length",
+                "Info",
+            ],
         ),
     ],
 )
