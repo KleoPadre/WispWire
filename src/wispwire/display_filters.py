@@ -50,8 +50,6 @@ def draft_filter_error(value: str, fields: tuple[str, ...]) -> str | None:
     if match is None:
         return None
     token = match.group(1)
-    if "." not in token:
-        return None
     prefix = token.lower()
     if prefix in fields:
         return None
