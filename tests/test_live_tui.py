@@ -296,6 +296,30 @@ async def test_live_display_filter_marks_unknown_field_invalid_while_typing() ->
 
 
 @pytest.mark.asyncio
+async def test_live_display_filter_marks_unknown_protocol_invalid_while_typing() -> (
+    None
+):
+    controller = FakeController(events=(LivePacketsAdded((tcp_packet(1),)),))
+    app = LiveCaptureApp(
+        "en0",
+        controller,
+        query_packets,
+        read_details,
+        display_filter_fields=("tcp", "tcp.port", "tcp.srcport", "udp"),
+    )
+
+    async with app.run_test() as pilot:
+        await pilot.pause(0.12)
+        await pilot.press("f")
+        await pilot.press(*tuple("ava"))
+        await pilot.pause(0.1)
+
+        display_filter = app.query_one("#display-filter", Input)
+        assert display_filter.has_class("filter-invalid")
+        assert not display_filter.has_class("filter-valid")
+
+
+@pytest.mark.asyncio
 async def test_live_app_has_interface_selector_and_no_info_search() -> None:
     controller = FakeController()
     app = LiveCaptureApp(

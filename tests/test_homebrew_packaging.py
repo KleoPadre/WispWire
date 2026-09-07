@@ -1,3 +1,4 @@
+import tomllib
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).parents[1]
@@ -52,8 +53,9 @@ def test_sdist_uses_explicit_release_file_set() -> None:
 
 def test_homebrew_smoke_script_rewrites_formula_to_local_sdist() -> None:
     script = SMOKE_SCRIPT.read_text()
+    version = tomllib.loads(PYPROJECT.read_text())["project"]["version"]
 
-    assert "wispwire-0.1.1.tar.gz" in script
+    assert f"wispwire-{version}.tar.gz" in script
     assert "file://" in script
     assert "brew install --formula" in script
     assert "brew test" in script
