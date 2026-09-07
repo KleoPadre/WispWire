@@ -1,3 +1,4 @@
+from importlib.metadata import version
 from pathlib import Path
 from subprocess import CompletedProcess
 
@@ -104,7 +105,7 @@ def test_doctor_collects_tools_and_interfaces_when_dumpcap_is_available() -> Non
     assert report.capture_warning is None
     assert report.sqlite_fts5 == SqliteFeatureStatus(True, None)
     assert report.python_version
-    assert report.wispwire_version == "0.1.1"
+    assert report.wispwire_version == version("wispwire")
 
 
 def test_doctor_includes_unavailable_fts5_status() -> None:
