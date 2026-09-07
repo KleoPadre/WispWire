@@ -45,8 +45,21 @@ wispwire doctor        # проверяет tshark, dumpcap и права на �
 
 Истории коммитов пока нет. Пишите короткие сообщения на русском в повелительном наклонении: `Добавить проверку tshark` или `Исправить фильтр UDP`. Один коммит — одна логическая задача. В PR укажите цель, ключевые изменения, способ проверки и связанные задачи; приложите скриншот для изменений TUI. Не включайте реальные пользовательские захваты, IP-адреса, токены или другие чувствительные данные.
 
+<!-- CODEGRAPH_START -->
+## CodeGraph
+
+In repositories indexed by CodeGraph (a `.codegraph/` directory exists at the repo root), reach for it BEFORE grep/find or reading files when you need to understand or locate code:
+
+- **MCP tool** (when available): `codegraph_explore` answers most code questions in one call — the relevant symbols' verbatim source plus the call paths between them, including dynamic-dispatch hops grep can't follow. Name a file or symbol in the query to read its current line-numbered source. If it's listed but deferred, load it by name via tool search.
+- **Shell** (always works): `codegraph explore "<symbol names or question>"` prints the same output.
+
+If there is no `.codegraph/` directory, skip CodeGraph entirely — indexing is the user's decision.
+<!-- CODEGRAPH_END -->
+
 ## Ветки и публикация Homebrew
 
 - Разработка ведётся в ветке `dev`.
+- Инструкции и артефакты для LLM/агентов, включая `AGENTS.md`, материалы Superpowers и служебные agent-настройки, можно коммитить и отправлять в `dev`.
+- В `main` перед публикацией отправляйте только чистый продуктовый код, тесты, packaging и пользовательскую/техническую документацию, необходимую для релиза; LLM/agent-служебные материалы в `main` не переносите.
 - Перед публикацией Homebrew проверенные изменения из `dev` необходимо влить в `main`.
 - GitHub Release, тег и обновление Homebrew formula создаются только от коммита из `main`; не публикуйте Homebrew из `dev`.
