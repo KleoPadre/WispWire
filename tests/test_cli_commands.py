@@ -126,8 +126,8 @@ def fake_live_components(
                 events.append("runtime-factory")
             events.append(f"app:{interface}")
 
-        def run(self) -> Path | None:
-            events.append("run")
+        def run(self, **kwargs) -> Path | None:
+            events.append(f"run:{kwargs}")
             if error is not None:
                 raise error
             return result
@@ -277,7 +277,7 @@ def test_capture_opens_live_tui_and_passes_saved_result_to_file_tui(
         "interfaces:en0",
         "runtime-factory",
         "app:en0",
-        "run",
+        "run:{'mouse': False}",
     ]
     assert opened == [saved]
 
@@ -295,7 +295,7 @@ def test_capture_does_not_open_file_tui_after_quit(monkeypatch) -> None:
     result = CliRunner().invoke(app, ["capture", "--iface", "en0"])
 
     assert result.exit_code == 0
-    assert events[-2:] == ["app:en0", "run"]
+    assert events[-2:] == ["app:en0", "run:{'mouse': False}"]
     assert opened == []
 
 
@@ -389,7 +389,7 @@ def fake_app(started: list[tuple[tuple[PacketSummary, ...], str]]):
             self.packets = packets
             self.source_name = source_name
 
-        def run(self) -> None:
+        def run(self, **_kwargs) -> None:
             started.append((self.packets, self.source_name))
 
     return FakeApp
@@ -411,7 +411,7 @@ def test_open_passes_capture_to_packet_details_reader(monkeypatch, tmp_path) -> 
             self._packets = packets
             self._read_details = read_details
 
-        def run(self) -> None:
+        def run(self, **_kwargs) -> None:
             self._read_details(self._packets[0])
 
     def fake_read_packet_details(
@@ -481,6 +481,44 @@ def test_open_starts_tui_with_read_only_packet_summaries(monkeypatch, tmp_path) 
     assert started == [((packet(),), "capture.pcapng")]
 
 
+def test_open_runs_tui_without_mouse_tracking(monkeypatch, tmp_path) -> None:
+    capture_path = tmp_path / "capture.pcapng"
+    capture_path.touch()
+    run_kwargs: list[dict[str, object]] = []
+
+    class FakeSource:
+        def __init__(self, *_args, **_kwargs) -> None:
+            pass
+
+        def load(self, _limit: int) -> tuple[PacketSummary, ...]:
+            return (packet(),)
+
+        def query(self, _query: PacketQuery) -> PacketQueryResult:
+            return PacketQueryResult((packet(),), None)
+
+        def close(self) -> None:
+            pass
+
+    class FakeApp:
+        def __init__(self, *_args, **_kwargs) -> None:
+            pass
+
+        def run(self, **kwargs) -> None:
+            run_kwargs.append(kwargs)
+
+    monkeypatch.setattr(
+        "wispwire.cli.inspect_tool",
+        lambda _: ToolStatus("tshark", Path("/opt/bin/tshark"), "4.4.0", None),
+    )
+    monkeypatch.setattr("wispwire.cli.FilePacketSource", FakeSource)
+    monkeypatch.setattr("wispwire.cli.WispWireApp", FakeApp)
+
+    result = CliRunner().invoke(app, ["open", str(capture_path)])
+
+    assert result.exit_code == 0
+    assert run_kwargs == [{"mouse": False}]
+
+
 def test_open_passes_initial_display_filter_to_tui(monkeypatch, tmp_path) -> None:
     capture_path = tmp_path / "capture.pcapng"
     capture_path.touch()
@@ -503,7 +541,7 @@ def test_open_passes_initial_display_filter_to_tui(monkeypatch, tmp_path) -> Non
         def __init__(self, *_args, initial_filter: str = "", **_kwargs) -> None:
             started.append(initial_filter)
 
-        def run(self) -> None:
+        def run(self, **_kwargs) -> None:
             pass
 
     monkeypatch.setattr(
@@ -541,7 +579,7 @@ def test_open_closes_file_packet_source_after_tui_exit(monkeypatch, tmp_path) ->
         def __init__(self, *_args, **_kwargs) -> None:
             pass
 
-        def run(self) -> None:
+        def run(self, **_kwargs) -> None:
             events.append("run")
 
     monkeypatch.setattr(

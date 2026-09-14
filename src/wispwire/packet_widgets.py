@@ -5,6 +5,22 @@ from textual.widgets import DataTable
 
 from wispwire.packets import PacketDetails, PacketSummary
 
+_WIDE_COLUMN_WIDTHS = {
+    "No.": 6,
+    "Time": 12,
+    "Source": 18,
+    "Destination": 18,
+    "URL": 28,
+    "Protocol": 10,
+    "Length": 8,
+    "Info": 54,
+}
+_NARROW_COLUMN_WIDTHS = {
+    "No.": 6,
+    "Source": 18,
+    "Protocol": 10,
+    "Info": 52,
+}
 _DEFAULT_PROTOCOL_STYLE = "bold white on #303030"
 _PROTOCOL_STYLES = {
     "ARP": "bold white on #3a3325",
@@ -57,19 +73,9 @@ def rebuild_packet_table(
 
     selected_row = table.cursor_row
     table.clear(columns=True)
-    if wide:
-        table.add_columns(
-            "No.",
-            "Time",
-            "Source",
-            "Destination",
-            "URL",
-            "Protocol",
-            "Length",
-            "Info",
-        )
-    else:
-        table.add_columns("No.", "Source", "Protocol", "Info")
+    column_widths = _WIDE_COLUMN_WIDTHS if wide else _NARROW_COLUMN_WIDTHS
+    for label, width in column_widths.items():
+        table.add_column(label, width=width)
     for packet in packets:
         table.add_row(*packet_row_values(packet, wide))
     if packets:
