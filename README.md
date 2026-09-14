@@ -138,9 +138,9 @@ Release checklist:
 .venv/bin/mypy src
 .venv/bin/wispwire doctor
 .venv/bin/python -m hatchling build -t sdist -t wheel
-shasum -a 256 dist/wispwire-0.1.3.tar.gz dist/wispwire-0.1.3-py3-none-any.whl
-git tag v0.1.3
-git push origin main v0.1.3
+shasum -a 256 dist/wispwire-0.1.6.tar.gz dist/wispwire-0.1.6-py3-none-any.whl
+git tag v0.1.6
+git push origin main v0.1.6
 ```
 
-After the GitHub Release is available, compare the SHA-256 of `wispwire-0.1.3.tar.gz` with `SHA256SUMS.txt` and use that SHA in the Homebrew formula. The formula must install Wireshark and Python dependencies automatically. `wireshark-chmodbpf` remains a separate macOS cask for capture permissions; a Homebrew formula cannot correctly declare a cask as a dependency.
+After the GitHub Release is available, compare the SHA-256 of `wispwire-0.1.6.tar.gz` with `SHA256SUMS.txt` and use that SHA in the Homebrew formula. The formula must install Wireshark and Python dependencies automatically. `wireshark-chmodbpf` remains a separate macOS cask for capture permissions; a Homebrew formula cannot correctly declare a cask as a dependency.

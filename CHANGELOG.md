@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.1.6 - 2026-09-14
+
+- Switched project-facing and product-facing text to English by default.
+- Translated CLI help, TUI labels, diagnostics, errors, README, changelog, package metadata, Homebrew caveats, tests, comments, and project guidance.
+- Replaced legacy Russian Superpowers plan/spec prose with English summaries while preserving the project record.
+
+## 0.1.5 - 2026-09-14
+
+- Fixed ordinary mouse text selection in the TUI so the terminal can copy any visible fragment again, including IP addresses, URLs, `Info` fragments, or whole rows.
+- Fixed packet-table column widths so they no longer expand or shrink while rows refresh.
+
+## 0.1.4 - 2026-09-07
+
+- Added a `URL` column to the wide packet table in file mode and live capture.
+- The `URL` column shows only the request domain or subdomain, without the path.
+
 ## 0.1.3 - 2026-09-07
 
 - Moved release publication to `main`: GitHub Releases and the Homebrew formula are published only from the release branch.
