@@ -1,4 +1,4 @@
-"""Интерфейс просмотра и управления live-захватом."""
+"""Interface for viewing and controlling live capture."""
 
 from __future__ import annotations
 
@@ -50,17 +50,17 @@ from wispwire.packets import PacketDetails, PacketSummary
 from wispwire.tshark import TsharkReadError
 
 _STATE_LABELS = {
-    CaptureState.RUNNING: "выполняется",
-    CaptureState.STOPPED: "остановлен",
-    CaptureState.LIMIT_REACHED: "достигнут лимит",
-    CaptureState.FAILED: "ошибка",
-    CaptureState.CLOSED: "закрыт",
+    CaptureState.RUNNING: "running",
+    CaptureState.STOPPED: "stopped",
+    CaptureState.LIMIT_REACHED: "limit reached",
+    CaptureState.FAILED: "failed",
+    CaptureState.CLOSED: "closed",
 }
 _LIVE_PACKET_WINDOW = 2000
 
 
 class LiveQueryCompleted(Message):
-    """Результат фонового запроса пакетов."""
+    """Result of a background packet query."""
 
     def __init__(self, generation: int, result: PacketQueryResult) -> None:
         super().__init__()
@@ -69,7 +69,7 @@ class LiveQueryCompleted(Message):
 
 
 class LiveDetailsCompleted(Message):
-    """Результат фонового чтения подробностей пакета."""
+    """Result of background packet-detail reading."""
 
     def __init__(
         self,
@@ -87,7 +87,7 @@ class LiveDetailsCompleted(Message):
 
 @dataclass(frozen=True)
 class LiveCaptureRuntime:
-    """Набор объектов для одного запущенного live-интерфейса."""
+    """Object set for one running live interface."""
 
     controller: LiveCaptureController
     query_packets: Callable[[PacketQuery], PacketQueryResult]
@@ -95,7 +95,7 @@ class LiveCaptureRuntime:
 
 
 class LiveCaptureApp(App[Path | None]):
-    """Показывает подтверждённые пакеты и управляет live-захватом."""
+    """Show confirmed packets and control live capture."""
 
     CSS = """
     Screen { background: #050505; color: #e8e8e8; }
@@ -131,15 +131,15 @@ class LiveCaptureApp(App[Path | None]):
     """
 
     BINDINGS: ClassVar[list[BindingType]] = [
-        ("s", "stop_and_analyze", "Остановить и открыть"),
-        ("q", "quit", "Выход"),
-        ("c", "continue_capture", "Продолжить"),
-        ("r", "restart_capture", "Перезапустить"),
-        ("w", "save_snapshot", "Снимок"),
-        ("f", "focus_display_filter", "Фильтр"),
-        ("enter", "apply_filter", "Применить фильтр"),
-        ("escape", "clear_active_filter", "Очистить"),
-        ("tab", "focus_next", "Сменить фокус"),
+        ("s", "stop_and_analyze", "Stop and open"),
+        ("q", "quit", "Quit"),
+        ("c", "continue_capture", "Continue"),
+        ("r", "restart_capture", "Restart"),
+        ("w", "save_snapshot", "Snapshot"),
+        ("f", "focus_display_filter", "Filter"),
+        ("enter", "apply_filter", "Apply filter"),
+        ("escape", "clear_active_filter", "Clear"),
+        ("tab", "focus_next", "Next focus"),
     ]
 
     def __init__(
@@ -172,13 +172,13 @@ class LiveCaptureApp(App[Path | None]):
         self._generation = 0
         self._expected_restart_generation: int | None = None
         self._current_suggestions: tuple[str, ...] = ()
-        self.title = f"WispWire — live-захват {interface}"
+        self.title = f"WispWire — live capture {interface}"
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=False)
-        yield Static("Минимальный размер терминала — 80×24.", id="size-warning")
+        yield Static("Minimum terminal size is 80x24.", id="size-warning")
         with Container(id="capture-header"):
-            yield Static(f"Интерфейс: {self._interface}", id="interface")
+            yield Static(f"Interface: {self._interface}", id="interface")
             yield Static(id="capture-status")
             yield Static(id="live-status")
         with Container(id="filters"):
@@ -186,7 +186,7 @@ class LiveCaptureApp(App[Path | None]):
                 yield Static("▽", id="filter-icon")
                 yield Select.from_values(
                     self._available_interfaces,
-                    prompt="Интерфейс",
+                    prompt="Interface",
                     allow_blank=False,
                     value=self._interface,
                     id="interface-select",
@@ -199,7 +199,7 @@ class LiveCaptureApp(App[Path | None]):
                 yield Button("Cancel", id="clear-filter", variant="warning")
             yield OptionList(id="filter-suggestions")
             yield Static(
-                "Enter или кнопка применяют Wireshark display filter.",
+                "Enter or the button applies the Wireshark display filter.",
                 id="filter-status",
             )
         with Container(id="layout"):
@@ -267,7 +267,7 @@ class LiveCaptureApp(App[Path | None]):
         if self._state is CaptureState.RUNNING:
             self._controller.submit("stop_and_save")
         else:
-            self._set_status("Остановить можно только запущенный захват.")
+            self._set_status("Only a running capture can be stopped.")
 
     def action_continue_capture(self) -> None:
         if not self._state_is_known():
@@ -275,7 +275,7 @@ class LiveCaptureApp(App[Path | None]):
         if self._state is CaptureState.STOPPED:
             self._controller.submit("continue")
         else:
-            self._set_status("Продолжить можно только остановленный захват.")
+            self._set_status("Only a stopped capture can be continued.")
 
     def action_restart_capture(self) -> None:
         if not self._state_is_known():
@@ -289,7 +289,7 @@ class LiveCaptureApp(App[Path | None]):
             self._controller.submit("restart")
         else:
             self._set_status(
-                "Перезапуск доступен только после остановки, ошибки или лимита."
+                "Restart is available only after stop, failure, or size limit."
             )
 
     def action_save_snapshot(self) -> None:
@@ -302,7 +302,7 @@ class LiveCaptureApp(App[Path | None]):
         ):
             self._controller.submit("save")
         else:
-            self._set_status("Сохранение недоступно в текущем состоянии захвата.")
+            self._set_status("Saving is unavailable in the current capture state.")
 
     def action_focus_display_filter(self) -> None:
         self.query_one("#display-filter", Input).focus()
@@ -367,7 +367,7 @@ class LiveCaptureApp(App[Path | None]):
                 if event.open_in_file_tui:
                     self.exit(event.path)
                 else:
-                    self._set_status(f"Снимок сохранён: {event.path}")
+                    self._set_status(f"Snapshot saved: {event.path}")
 
         self._pending_events = deferred
         if packets_changed:
@@ -438,9 +438,7 @@ class LiveCaptureApp(App[Path | None]):
 
         if not self._packets:
             self._details_packet_number = None
-            self.query_one("#details-content", Static).update(
-                Text("Пакеты не найдены.")
-            )
+            self.query_one("#details-content", Static).update(Text("No packets found."))
             self.query_one("#bytes-content", Static).update(Text(""))
             return
 
@@ -473,9 +471,7 @@ class LiveCaptureApp(App[Path | None]):
     def _rebuild_table(self, wide: bool) -> None:
         rebuild_packet_table(self.query_one("#packets", DataTable), self._packets, wide)
         if not self._packets:
-            self.query_one("#details-content", Static).update(
-                Text("Пакеты не найдены.")
-            )
+            self.query_one("#details-content", Static).update(Text("No packets found."))
 
     def _show_details(self, packet: PacketSummary) -> None:
         if packet.number in (
@@ -516,7 +512,7 @@ class LiveCaptureApp(App[Path | None]):
             return
         self._details_packet_number = event.number
         if event.error is not None:
-            text = Text(f"Не удалось загрузить детали: {event.error}")
+            text = Text(f"Could not load details: {event.error}")
             bytes_text = Text("")
         else:
             assert event.details is not None
@@ -526,9 +522,11 @@ class LiveCaptureApp(App[Path | None]):
         self.query_one("#bytes-content", Static).update(bytes_text)
 
     def _show_capture_status(self, packets: int, size: int) -> None:
-        state = "ожидание данных" if self._state is None else _STATE_LABELS[self._state]
+        state = (
+            "waiting for data" if self._state is None else _STATE_LABELS[self._state]
+        )
         self.query_one("#capture-status", Static).update(
-            Text(f"Состояние: {state} · пакетов: {packets} · байт: {size}")
+            Text(f"State: {state} · packets: {packets} · bytes: {size}")
         )
 
     def _set_status(self, message: str) -> None:
@@ -536,25 +534,25 @@ class LiveCaptureApp(App[Path | None]):
 
     def _switch_interface(self, interface: str) -> None:
         if self._runtime_factory is None:
-            self._set_status("Переключение интерфейса недоступно.")
+            self._set_status("Interface switching is unavailable.")
             return
-        self._set_status(f"Переключение на {interface}…")
+        self._set_status(f"Switching to {interface}…")
         try:
             self._controller.submit("quit")
             self._controller.join()
             runtime = self._runtime_factory(interface)
         except (CaptureError, OSError, TsharkReadError) as error:
-            self._set_status(f"Не удалось переключить интерфейс: {error}")
+            self._set_status(f"Could not switch interface: {error}")
             return
 
         self._interface = interface
         self._controller = runtime.controller
         self._query_packets = runtime.query_packets
         self._read_details = runtime.read_details
-        self.title = f"WispWire — live-захват {interface}"
+        self.title = f"WispWire — live capture {interface}"
         self._clear_packets_for_interface_switch()
         self._show_capture_status(0, 0)
-        self._set_status(f"Интерфейс переключён: {interface}")
+        self._set_status(f"Interface switched: {interface}")
         self._controller.start()
 
     def _clear_packets_for_interface_switch(self) -> None:
@@ -572,7 +570,7 @@ class LiveCaptureApp(App[Path | None]):
         self.query_one("#display-filter", Input).value = ""
         self._hide_filter_suggestions()
         self._mark_filter_unknown()
-        self.query_one("#details-content", Static).update(Text("Пакеты не найдены."))
+        self.query_one("#details-content", Static).update(Text("No packets found."))
         self.query_one("#bytes-content", Static).update(Text(""))
         self._rebuild_table(self.size.width >= 120)
 
@@ -588,11 +586,11 @@ class LiveCaptureApp(App[Path | None]):
         self._update_filter_suggestions(suggestions)
         if suggestions:
             self.query_one("#filter-status", Static).update(
-                Text(f"Подсказка: {', '.join(suggestions)}")
+                Text(f"Hint: {', '.join(suggestions)}")
             )
         elif value.strip():
             self.query_one("#filter-status", Static).update(
-                Text("Enter или Применить запустит Wireshark display filter.")
+                Text("Enter or Apply will run the Wireshark display filter.")
             )
         else:
             self._show_filter_result_status(len(self._all_packets), len(self._packets))
@@ -638,16 +636,18 @@ class LiveCaptureApp(App[Path | None]):
     def _show_filter_result_status(self, total: int, visible: int) -> None:
         status = self.query_one("#filter-status", Static)
         if total > visible:
-            status.update(Text(f"показаны последние {visible} из {total} пакетов"))
+            status.update(Text(f"showing the latest {visible} of {total} packets"))
         elif self._filters_are_active():
-            status.update(Text(f"Валидный фильтр · показано {visible} пакетов"))
+            status.update(Text(f"Valid filter · showing {visible} packets"))
         else:
-            status.update(Text("Enter или кнопка применяют Wireshark display filter."))
+            status.update(
+                Text("Enter or the button applies the Wireshark display filter.")
+            )
 
     def _state_is_known(self) -> bool:
         if self._state is not None:
             return True
-        self._set_status("Состояние захвата ещё не получено.")
+        self._set_status("Capture state has not been received yet.")
         return False
 
     def _clear_packets_for_restart(self) -> None:

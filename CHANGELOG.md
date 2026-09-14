@@ -1,31 +1,31 @@
 # Changelog
 
-## 0.1.3 — 2026-09-07
+## 0.1.3 - 2026-09-07
 
-- Выпуск перенесён в `main`: GitHub Release и Homebrew formula публикуются только из релизной ветки.
+- Moved release publication to `main`: GitHub Releases and the Homebrew formula are published only from the release branch.
 
-## 0.1.2 — 2026-09-07
+## 0.1.2 - 2026-09-07
 
-- Исправлена немедленная подсветка неизвестного протокола display filter: `ava` становится красным ещё до нажатия Enter или Apply.
+- Fixed immediate highlighting for unknown display-filter protocols: `ava` turns red before Enter or Apply is pressed.
 
-## 0.1.1 — 2026-09-04
+## 0.1.1 - 2026-09-04
 
-- Исправлена обработка позднего события деталей пакета после закрытия live-TUI.
-- Обновлена Homebrew-подготовка: formula устанавливает WispWire, Python runtime-зависимости и Wireshark CLI одной командой.
-- `doctor` на macOS подсказывает `brew install --cask wireshark-chmodbpf`, если `dumpcap` установлен, но интерфейсы не видны.
+- Fixed handling for late packet-detail events after the live TUI closes.
+- Updated Homebrew packaging so the formula installs WispWire, Python runtime dependencies, and the Wireshark CLI in one command.
+- `doctor` now suggests `brew install --cask wireshark-chmodbpf` on macOS when `dumpcap` is installed but no interfaces are visible.
 
-## 0.1.0 — 2026-09-04
+## 0.1.0 - 2026-09-04
 
-- Добавлена команда `wispwire doctor` для проверки Wireshark CLI, прав live-захвата и SQLite FTS5 trigram.
-- Добавлена команда `wispwire interfaces` для безопасного чтения интерфейсов `dumpcap`.
-- Добавлена команда `wispwire open PATH` для read-only просмотра PCAP/PCAPNG в TUI.
-- Добавлены дерево протоколов и hex/ASCII-детали выбранного кадра через TShark.
-- Добавлены временные сессии WispWire с manifest, безопасной очисткой и защитой от небезопасных путей.
-- Добавлен сегментированный live-захват через `dumpcap` и сохранение snapshot через `mergecap`.
-- Добавлен live-TUI с Wireshark display filter, подсказками синтаксиса, цветовой индикацией валидности фильтра и переключением интерфейса.
+- Added `wispwire doctor` for checking the Wireshark CLI, live-capture permissions, and SQLite FTS5 trigram support.
+- Added `wispwire interfaces` for safely reading interfaces from `dumpcap`.
+- Added `wispwire open PATH` for read-only PCAP/PCAPNG viewing in the TUI.
+- Added protocol-tree and Hex/ASCII details for the selected frame through TShark.
+- Added temporary WispWire sessions with manifests, safe cleanup, and unsafe-path protection.
+- Added segmented live capture through `dumpcap` and snapshot saving through `mergecap`.
+- Added a live TUI with Wireshark display filters, syntax suggestions, filter validity highlighting, and interface switching.
 
-### Проверки релиза
+### Release Checks
 
-- Автоматические проверки выполняются локально и в CI на macOS/Linux.
-- Homebrew-поставка проверяется через установку установленной команды `wispwire`, `brew test`, `brew audit` и `brew style`.
-- Ручная приёмка live-захвата на реальном интерфейсе обязательна перед публичной публикацией Homebrew tap.
+- Automated checks run locally and in CI on macOS/Linux.
+- Homebrew delivery is verified through installed-command checks, `brew test`, `brew audit`, and `brew style`.
+- Manual live-capture acceptance on a real interface is required before public Homebrew tap publication.

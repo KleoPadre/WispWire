@@ -79,13 +79,13 @@ class Wispwire < Formula
 
   def caveats
     <<~EOS
-      WispWire установлен как терминальная команда:
+      WispWire is installed as a terminal command:
 
         wispwire doctor
         wispwire capture --iface en0
 
-      Formula автоматически устанавливает Wireshark CLI: tshark, dumpcap и mergecap.
-      Если на macOS список интерфейсов пустой, установите права packet capture:
+      The formula automatically installs the Wireshark CLI: tshark, dumpcap, and mergecap.
+      If the interface list is empty on macOS, install packet-capture permissions:
 
         brew install --cask wireshark-chmodbpf
     EOS
@@ -94,8 +94,8 @@ class Wispwire < Formula
   test do
     assert_match "WispWire", shell_output("#{bin}/wispwire --help")
     doctor_output = shell_output("#{bin}/wispwire doctor")
-    assert_match "Диагностика WispWire", doctor_output
+    assert_match "WispWire Diagnostics", doctor_output
     assert_match "tshark", doctor_output
-    refute_match "ОШИБКА", doctor_output
+    refute_match "ERROR", doctor_output
   end
 end

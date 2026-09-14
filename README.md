@@ -1,42 +1,36 @@
 # WispWire
 
-WispWire — терминальная утилита для диагностики сетевого анализа.
+WispWire is a terminal utility for network-analysis diagnostics.
 
-## Установка
+## Installation
 
 ### Homebrew
 
-Основной пользовательский способ установки:
+The primary user installation path is Homebrew:
 
 ```bash
 brew install kleopadre/tap/wispwire
 wispwire doctor
 ```
 
-Эта команда устанавливает WispWire, Python runtime-зависимости и Wireshark CLI
-(`tshark`, `dumpcap`, `mergecap`). После установки пользователь запускает
-WispWire обычной командой из терминала:
+This installs WispWire, its Python runtime dependencies, and the Wireshark CLI tools (`tshark`, `dumpcap`, and `mergecap`). After installation, run WispWire directly from the terminal:
 
 ```bash
 wispwire capture --iface en0
 wispwire open ~/Downloads/capture.pcapng
 ```
 
-WispWire не устанавливает и не запускает фоновый сервис. `brew services` для
-него не используется: все команды выполняются явно из терминала.
+WispWire does not install or run a background service. `brew services` is not used; every command is started explicitly from the terminal.
 
-На macOS список интерфейсов может быть пустым, если системе не хватает прав на
-BPF-устройства. Это не Python-зависимость WispWire, а системное разрешение
-packet capture. `wispwire doctor` явно покажет такую проблему и команду для её
-исправления через Homebrew:
+On macOS, the interface list can be empty when the system lacks permission to access BPF devices. This is not a WispWire Python dependency issue; it is an operating-system packet-capture permission. `wispwire doctor` reports this condition and shows the Homebrew command for fixing it:
 
 ```bash
 brew install --cask wireshark-chmodbpf
 ```
 
-### Разработка из исходников
+### Development From Source
 
-Создайте виртуальное окружение и установите пакет с зависимостями разработки:
+Create a virtual environment and install the package with development dependencies:
 
 ```bash
 python3 -m venv .venv
@@ -44,13 +38,13 @@ python3 -m venv .venv
 python -m pip install -e '.[dev]'
 ```
 
-Если окружение уже создано, используйте его интерпретатор:
+If the environment already exists, use its interpreter:
 
 ```bash
 .venv/bin/python -m pip install -e '.[dev]'
 ```
 
-## Проверки
+## Checks
 
 ```bash
 .venv/bin/python -m pytest
@@ -59,7 +53,7 @@ python -m pip install -e '.[dev]'
 .venv/bin/mypy src
 ```
 
-Проверить поставляемую команду можно так:
+Check the shipped command with:
 
 ```bash
 wispwire --help
@@ -67,30 +61,27 @@ wispwire doctor
 wispwire interfaces
 ```
 
-## Диагностика окружения
+## Environment Diagnostics
 
-Проверить наличие `tshark`, `dumpcap`, `mergecap`, доступность live-захвата и
-SQLite FTS5 trigram, требуемый для индекса и поиска по `Info`:
+Check for `tshark`, `dumpcap`, `mergecap`, live-capture availability, and SQLite FTS5 trigram support, which is required for the packet index and `Info` search:
 
 ```bash
 .venv/bin/wispwire doctor
 ```
 
-Посмотреть интерфейсы, которые видит `dumpcap`:
+List the interfaces visible to `dumpcap`:
 
 ```bash
 .venv/bin/wispwire interfaces
 ```
 
-Эти команды только читают сведения об окружении и не требуют `sudo`. Права могут
-понадобиться позднее, при запуске live-захвата.
+These commands only read environment information and do not require `sudo`. Elevated permissions may be needed later when starting live capture.
 
-Если `doctor` сообщает об ошибке SQLite FTS5 trigram, просмотр готовых захватов
-остаётся доступным, но индекс и поиск по `Info` не будут созданы.
+If `doctor` reports an SQLite FTS5 trigram error, existing capture files can still be opened, but the packet index and `Info` search will not be created.
 
-## Открытие готового захвата
+## Opening Existing Captures
 
-Открыть готовый захват в read-only TUI можно так:
+Open an existing capture in the read-only TUI:
 
 ```bash
 .venv/bin/wispwire open ~/Downloads/capture.pcapng
@@ -98,61 +89,47 @@ SQLite FTS5 trigram, требуемый для индекса и поиска п
 .venv/bin/wispwire open ~/Downloads/capture.pcapng --filter "udp"
 ```
 
-TUI не изменяет исходный файл: `tshark` читает только сводки и по выбранному
-кадру показывает дерево протоколов и hex/ASCII-дамп. Display filter передаётся
-в TShark через `-Y` без переписывания выражения.
+The TUI does not modify the source file. `tshark` reads packet summaries and, for the selected frame, shows the protocol tree and Hex/ASCII dump. Display filters are passed to TShark with `-Y` without rewriting the expression.
 
-Используйте `↑` и `↓` для выбора пакета, `F` для поля display filter, `Esc` для
-очистки активного поля, `Tab` для смены фокуса и `Q` для выхода. WispWire не
-заменяет Wireshark.
+Use `Up` and `Down` to select a packet, `F` to focus the display-filter field, `Esc` to clear the active field, `Tab` to move focus, and `Q` to quit. WispWire is not a full Wireshark replacement.
 
-## Live-захват
+## Live Capture
 
-Запустить сегментированный live-захват на известном `dumpcap` интерфейсе можно
-так:
+Start segmented live capture on a known `dumpcap` interface:
 
 ```bash
 .venv/bin/wispwire capture --iface en0
 ```
 
-Перед стартом команда проверяет `dumpcap`, `mergecap` и выбранный интерфейс.
-Она создаёт временную сессию только после этих проверок и открывает live-TUI.
-В таблицу попадают пакеты только из подтверждённо закрытых сегментов.
+Before starting, the command checks `dumpcap`, `mergecap`, and the selected interface. It creates a temporary session only after those checks and opens the live TUI. The packet table receives packets only from confirmed closed segments.
 
-Горячие клавиши live-TUI:
+Live-TUI shortcuts:
 
-- `S` — остановить захват, сохранить результат и открыть его в файловом TUI;
-- `Q` — остановить захват и выйти без открытия файлового TUI;
-- `C` — продолжить остановленный захват;
-- `R` — перезапустить захват;
-- `W` — сохранить snapshot без остановки захвата;
-- `F` — перейти в поле display filter;
-- `Esc` — очистить активное поле фильтра;
-- `Tab` — сменить фокус.
+- `S` stops capture, saves the result, and opens it in the file TUI.
+- `Q` stops capture and quits without opening the file TUI.
+- `C` continues a stopped capture.
+- `R` restarts capture.
+- `W` saves a snapshot without stopping capture.
+- `F` focuses the display-filter field.
+- `Esc` clears the active filter field.
+- `Tab` moves focus.
 
-Результаты `S` и `W` сохраняются в `~/WispWire/Captures/` под именами вида
-`capture_YYYY-MM-DD_HH-MM-SS.pcapng`. Если такое имя уже занято, WispWire
-добавляет суффикс `-2`, `-3` и далее, не перезаписывая существующий файл.
+`S` and `W` save results in `~/WispWire/Captures/` with names such as `capture_YYYY-MM-DD_HH-MM-SS.pcapng`. If a name already exists, WispWire appends `-2`, `-3`, and so on without overwriting existing files.
 
-Live-захват требует ручной проверки на реальном доступном интерфейсе:
-автоматические тесты не подтверждают работу `dumpcap`, права доступа и
-появление реальных пакетов. Для приёмки нужно проверить новые пакеты, фильтр,
-`W`, переход `S` в файловый TUI и отдельный выход по `Q`.
+Live capture requires manual verification on a real accessible interface. Automated tests do not prove that `dumpcap` works with local permissions or that real packets appear. Acceptance should verify new packets, filtering, `W`, the `S` transition into the file TUI, and the separate `Q` exit path.
 
-## Релиз
+## Release
 
-Публичный релиз создаётся только из чистого `main`. В `main` не должны попадать
-локальные каталоги агентов, IDE-настройки, рабочие дампы и другие служебные
-файлы. Перед тегом проверьте состав индекса:
+Public releases are created only from a clean `main`. Local agent directories, IDE settings, working packet captures, and other service files must not enter `main`. Before tagging, inspect the tracked file set:
 
 ```bash
 git status --short --branch
 git ls-files | rg '(^|/)(\.claude|\.codex|\.cursor|\.gemini|\.vscode|\.codegraph|\.mcp\.json|GEMINI\.md|.*\.pcap|.*\.pcapng)'
 ```
 
-Если `rg` не нашёл совпадений и вышел с кодом 1, это ожидаемый чистый результат.
+If `rg` finds no matches and exits with code 1, that is the expected clean result.
 
-Порядок релиза:
+Release checklist:
 
 ```bash
 .venv/bin/python -m pytest
@@ -166,8 +143,4 @@ git tag v0.1.3
 git push origin main v0.1.3
 ```
 
-После появления GitHub Release нужно сверить SHA-256 `wispwire-0.1.3.tar.gz`
-с `SHA256SUMS.txt` и использовать этот SHA в Homebrew formula. Formula должна
-ставить `wireshark` и Python-зависимости автоматически. `wireshark-chmodbpf`
-остаётся отдельной macOS cask-зависимостью уровня прав захвата: Homebrew formula
-не может корректно объявить cask как dependency.
+After the GitHub Release is available, compare the SHA-256 of `wispwire-0.1.3.tar.gz` with `SHA256SUMS.txt` and use that SHA in the Homebrew formula. The formula must install Wireshark and Python dependencies automatically. `wireshark-chmodbpf` remains a separate macOS cask for capture permissions; a Homebrew formula cannot correctly declare a cask as a dependency.

@@ -82,7 +82,7 @@ def stopped_capture_with_segment(
     *,
     merge_result: subprocess.CompletedProcess[str] | None = None,
 ) -> CaptureSession:
-    """Создаёт остановленный захват с одним подтверждённым сегментом."""
+    """Create a stopped capture with one confirmed segment."""
 
     def mergecap(
         command: list[str], **_kwargs: object
@@ -185,14 +185,14 @@ def test_confirmed_size_counts_only_registered_closed_segments(tmp_path: Path) -
 
     assert capture.confirmed_size == 7
     process.stdout = iter([f"{outside}\n"])
-    with pytest.raises(CaptureError, match="сегмент"):
+    with pytest.raises(CaptureError, match="segment"):
         capture.collect_closed_segments()
     assert capture.confirmed_size == 7
 
 
 def test_start_marks_capture_failed_when_dumpcap_cannot_start(tmp_path: Path) -> None:
     def unavailable_popen(*args: object, **kwargs: object) -> Any:
-        raise OSError("dumpcap отсутствует")
+        raise OSError("dumpcap not available")
 
     capture = CaptureSession(
         Path("/opt/bin/dumpcap"),
@@ -242,7 +242,7 @@ def test_stop_marks_capture_failed_when_dumpcap_exits_with_error(
     )
     capture.start()
 
-    with pytest.raises(CaptureError, match="кодом 1"):
+    with pytest.raises(CaptureError, match="code 1"):
         capture.stop()
 
     assert capture.state is CaptureState.FAILED
@@ -265,10 +265,10 @@ def test_stop_registers_final_segment_before_changing_state(tmp_path: Path) -> N
 
 def test_stop_uses_drained_stderr_in_capture_error(tmp_path: Path) -> None:
     process = _Process(returncode=2)
-    process.stderr = iter(["нет прав на интерфейс\n"])
+    process.stderr = iter(["no interface permission\n"])
     capture = started_capture(tmp_path, process=process)
 
-    with pytest.raises(CaptureError, match="нет прав на интерфейс"):
+    with pytest.raises(CaptureError, match="no interface permission"):
         capture.stop()
 
     assert capture.state is CaptureState.FAILED
@@ -299,7 +299,7 @@ def test_limit_stops_capture_and_blocks_continue(tmp_path: Path) -> None:
     capture.collect_closed_segments()
 
     assert capture.state is CaptureState.LIMIT_REACHED
-    with pytest.raises(CaptureError, match="лимит"):
+    with pytest.raises(CaptureError, match="limit"):
         capture.continue_capture()
 
 
@@ -310,7 +310,7 @@ def test_collect_closed_segment_rejects_path_outside_session(tmp_path: Path) -> 
     outside.write_bytes(b"keep")
     capture._process.stdout = iter([f"{outside}\n"])
 
-    with pytest.raises(CaptureError, match="сессии"):
+    with pytest.raises(CaptureError, match="session"):
         capture.collect_closed_segments()
 
     assert outside.read_bytes() == b"keep"
@@ -326,7 +326,7 @@ def test_collect_closed_segment_rejects_path_escaping_session(tmp_path: Path) ->
     escaped = capture.session.path / ".." / outside.name
     capture._process.stdout = iter([f"{escaped}\n"])
 
-    with pytest.raises(CaptureError, match="сессии"):
+    with pytest.raises(CaptureError, match="session"):
         capture.collect_closed_segments()
 
     assert outside.read_bytes() == b"keep"
@@ -376,7 +376,7 @@ def test_collect_closed_segments_rejects_symbolic_link(tmp_path: Path) -> None:
     link.symlink_to(outside)
     capture._process.stdout = iter([f"{link}\n"])
 
-    with pytest.raises(CaptureError, match="сессии"):
+    with pytest.raises(CaptureError, match="session"):
         capture.collect_closed_segments()
 
     assert outside.read_bytes() == b"keep"
@@ -393,7 +393,7 @@ def test_collect_closed_segments_rejects_hard_link(tmp_path: Path) -> None:
     link.hardlink_to(outside)
     capture._process.stdout = iter([f"{link}\n"])
 
-    with pytest.raises(CaptureError, match="сессии"):
+    with pytest.raises(CaptureError, match="session"):
         capture.collect_closed_segments()
 
     assert outside.read_bytes() == b"keep"
@@ -408,7 +408,7 @@ def test_collect_closed_segments_rejects_non_regular_object(tmp_path: Path) -> N
     directory.mkdir()
     capture._process.stdout = iter([f"{directory}\n"])
 
-    with pytest.raises(CaptureError, match="сессии"):
+    with pytest.raises(CaptureError, match="session"):
         capture.collect_closed_segments()
 
     assert capture.session.manifest.owned_files == ()
@@ -484,9 +484,9 @@ def test_collect_closed_segments_drains_early_failed_process(tmp_path: Path) -> 
     segment = capture.session.path / "segment_final.pcapng"
     segment.write_bytes(b"final")
     process.stdout = iter([f"{segment}\n"])
-    process.stderr = iter(["dumpcap потерял интерфейс\n"])
+    process.stderr = iter(["dumpcap lost the interface\n"])
 
-    with pytest.raises(CaptureError, match="dumpcap потерял интерфейс"):
+    with pytest.raises(CaptureError, match="dumpcap lost the interface"):
         capture.collect_closed_segments()
 
     assert capture.state is CaptureState.FAILED
@@ -559,7 +559,7 @@ def test_save_does_not_overwrite_existing_file(tmp_path: Path) -> None:
     destination = tmp_path / "saved.pcapng"
     destination.write_bytes(b"existing")
 
-    with pytest.raises(CaptureError, match="уже существует"):
+    with pytest.raises(CaptureError, match="already exists"):
         capture.save(destination)
 
     assert destination.read_bytes() == b"existing"
@@ -571,7 +571,7 @@ def test_save_does_not_overwrite_or_remove_existing_part(tmp_path: Path) -> None
     temporary = tmp_path / "saved.pcapng.part"
     temporary.write_bytes(b"user data")
 
-    with pytest.raises(CaptureError, match="part|временн"):
+    with pytest.raises(CaptureError, match="part|temporar"):
         capture.save(destination)
 
     assert temporary.read_bytes() == b"user data"
@@ -585,7 +585,7 @@ def test_save_does_not_follow_or_remove_existing_part_link(tmp_path: Path) -> No
     target = tmp_path / "link-target.pcapng"
     temporary.symlink_to(target)
 
-    with pytest.raises(CaptureError, match="part|временн"):
+    with pytest.raises(CaptureError, match="part|temporar"):
         capture.save(destination)
 
     assert temporary.is_symlink()
@@ -609,7 +609,7 @@ def test_save_rejects_part_replaced_with_link_by_mergecap(tmp_path: Path) -> Non
     capture = stopped_capture_with_segment(tmp_path)
     capture._run = mergecap
 
-    with pytest.raises(CaptureError, match="part|временн"):
+    with pytest.raises(CaptureError, match="part|temporar"):
         capture.save(destination)
 
     assert temporary.is_symlink()
@@ -632,7 +632,7 @@ def test_save_does_not_overwrite_destination_created_while_merging(
     capture = stopped_capture_with_segment(tmp_path)
     capture._run = mergecap
 
-    with pytest.raises(CaptureError, match="уже существует"):
+    with pytest.raises(CaptureError, match="already exists"):
         capture.save(destination)
 
     assert destination.read_bytes() == b"existing"
@@ -642,7 +642,7 @@ def test_save_does_not_overwrite_destination_created_while_merging(
 def test_save_requires_confirmed_segment(tmp_path: Path) -> None:
     capture = started_capture(tmp_path)
 
-    with pytest.raises(CaptureError, match="сегмент"):
+    with pytest.raises(CaptureError, match="segment"):
         capture.save(tmp_path / "saved.pcapng")
 
 
@@ -693,9 +693,9 @@ def test_save_is_available_after_failure_for_confirmed_segments(
     first.write_bytes(b"confirmed")
     process.stdout = iter([f"{first}\n"])
     capture.collect_closed_segments()
-    process.stderr = iter(["ошибка dumpcap\n"])
+    process.stderr = iter(["failed dumpcap\n"])
 
-    with pytest.raises(CaptureError, match="ошибка dumpcap"):
+    with pytest.raises(CaptureError, match="failed dumpcap"):
         capture.stop()
 
     assert capture.state is CaptureState.FAILED
@@ -816,7 +816,7 @@ def test_close_does_not_remove_session_when_storage_rejects_it(tmp_path: Path) -
     capture = stopped_capture_with_segment(tmp_path)
     capture.storage.close_session = lambda _: False
 
-    with pytest.raises(CaptureError, match="не удалось"):
+    with pytest.raises(CaptureError, match="could not"):
         capture.close()
 
 
@@ -839,7 +839,7 @@ def test_restart_terminates_failed_process_before_closing_session(
     outside.write_bytes(b"keep")
     failed_process.stdout = iter([f"{outside}\n"])
 
-    with pytest.raises(CaptureError, match="сессии"):
+    with pytest.raises(CaptureError, match="session"):
         capture.collect_closed_segments()
 
     original_close_session = capture.storage.close_session
@@ -864,7 +864,7 @@ def test_close_terminates_failed_process_before_closing_session(tmp_path: Path) 
     outside.write_bytes(b"keep")
     failed_process.stdout = iter([f"{outside}\n"])
 
-    with pytest.raises(CaptureError, match="сессии"):
+    with pytest.raises(CaptureError, match="session"):
         capture.collect_closed_segments()
 
     original_close_session = capture.storage.close_session

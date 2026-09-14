@@ -1,4 +1,4 @@
-"""TUI только для чтения сводок пакетов."""
+"""Read-only TUI for packet summaries."""
 
 from collections.abc import Callable
 from typing import ClassVar
@@ -19,7 +19,7 @@ from wispwire.tshark import TsharkReadError
 
 
 class WispWireApp(App[None]):
-    """Показывает список пакетов и сведения о выбранном пакете."""
+    """Show the packet list and selected-packet details."""
 
     CSS = """
     #layout { layout: horizontal; }
@@ -33,11 +33,11 @@ class WispWireApp(App[None]):
     """
 
     BINDINGS: ClassVar[list[BindingType]] = [
-        ("q", "quit", "Выход"),
-        ("tab", "focus_next", "Сменить фокус"),
-        ("f", "focus_display_filter", "Фильтр"),
+        ("q", "quit", "Quit"),
+        ("tab", "focus_next", "Next focus"),
+        ("f", "focus_display_filter", "Filter"),
         ("/", "focus_info_search", "Info"),
-        ("escape", "clear_active_filter", "Очистить"),
+        ("escape", "clear_active_filter", "Clear"),
     ]
 
     def __init__(
@@ -61,7 +61,7 @@ class WispWireApp(App[None]):
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=False)
-        yield Static("Минимальный размер терминала — 80×24.", id="size-warning")
+        yield Static("Minimum terminal size is 80x24.", id="size-warning")
         with Container(id="filters"):
             yield Input(
                 value=self._initial_filter,
@@ -125,9 +125,7 @@ class WispWireApp(App[None]):
             return
         else:
             self._details_packet_number = None
-            self.query_one("#details-content", Static).update(
-                Text("Пакеты не найдены.")
-            )
+            self.query_one("#details-content", Static).update(Text("No packets found."))
 
     def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
         if event.cursor_row < len(self._packets):
@@ -181,7 +179,7 @@ class WispWireApp(App[None]):
         try:
             packet_details = self._read_details(packet)
         except (TsharkReadError, OSError) as error:
-            details = (*summary, "", f"Не удалось загрузить детали: {error}")
+            details = (*summary, "", f"Could not load details: {error}")
         else:
             self.query_one("#details-content", Static).update(
                 render_packet_details(packet, packet_details)

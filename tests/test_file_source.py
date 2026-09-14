@@ -12,7 +12,7 @@ from wispwire.tshark import TsharkReadError
 def packet(
     number: int,
     protocol: str = "DNS",
-    info: str = "Запрос",
+    info: str = "Request",
     url: str = "",
 ) -> PacketSummary:
     return PacketSummary(
@@ -29,8 +29,8 @@ def packet(
 
 def test_file_packet_source_load_indexes_initial_packets(tmp_path: Path) -> None:
     packets = (
-        packet(number=1, info="Первый запрос"),
-        packet(number=2, info="Ответ telegram"),
+        packet(number=1, info="First request"),
+        packet(number=2, info="Reply telegram"),
     )
     source = FilePacketSource(
         tmp_path / "capture.pcapng",
@@ -50,8 +50,8 @@ def test_file_packet_source_load_indexes_initial_packets(tmp_path: Path) -> None
 
 def test_file_packet_source_keeps_url_domain_after_info_query(tmp_path: Path) -> None:
     packets = (
-        packet(number=1, info="Первый запрос"),
-        packet(number=2, info="Ответ telegram", url="api.telegram.org"),
+        packet(number=1, info="First request"),
+        packet(number=2, info="Reply telegram", url="api.telegram.org"),
     )
     source = FilePacketSource(
         tmp_path / "capture.pcapng",
@@ -124,7 +124,7 @@ def test_file_packet_source_returns_filter_error_without_losing_index(
         **_kwargs: object,
     ) -> Iterator[PacketSummary]:
         if display_filter:
-            raise TsharkReadError("Синтаксическая ошибка display filter")
+            raise TsharkReadError("Display filter syntax error")
         return iter(packets)
 
     source = FilePacketSource(
@@ -138,7 +138,7 @@ def test_file_packet_source_returns_filter_error_without_losing_index(
 
         result = source.query(PacketQuery(display_filter="udp &&", limit=10))
 
-        assert result == PacketQueryResult((), "Синтаксическая ошибка display filter")
+        assert result == PacketQueryResult((), "Display filter syntax error")
         assert (
             source.query(PacketQuery(info_query="telegram", limit=10)).packets
             == packets
@@ -173,7 +173,7 @@ def test_file_packet_source_rejects_non_positive_query_limit(tmp_path: Path) -> 
         iter_summaries=lambda *_args, **_kwargs: iter(()),
     )
     try:
-        with pytest.raises(ValueError, match="Размер страницы"):
+        with pytest.raises(ValueError, match="Page size"):
             source.query(PacketQuery(limit=0))
     finally:
         source.close()

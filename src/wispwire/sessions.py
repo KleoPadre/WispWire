@@ -1,4 +1,4 @@
-"""Безопасное хранилище временных сессий WispWire."""
+"""Safe temporary session storage for WispWire."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ _MAX_PID = (1 << 31) - 1
 
 
 class SessionSafetyError(RuntimeError):
-    """Операция затрагивает небезопасный путь или файл."""
+    """The operation touches an unsafe path or file."""
 
 
 @dataclass(frozen=True)
@@ -57,7 +57,7 @@ class _RemovableContents:
 
 
 class SessionStorage:
-    """Создаёт сессии внутри выделенного корня cache."""
+    """Create sessions inside a dedicated cache root."""
 
     def __init__(
         self,
@@ -71,7 +71,7 @@ class SessionStorage:
         self.cache_root = Path(os.path.abspath(os.fspath(selected_root)))
         selected_pid = os.getpid() if pid is None else pid
         if not self._is_valid_pid(selected_pid):
-            raise ValueError("PID должен быть положительным 32-битным целым числом")
+            raise ValueError("PID must be a positive 32-bit integer")
         self.pid = selected_pid
         self.is_pid_alive = is_pid_alive or self._default_is_pid_alive
 
@@ -92,7 +92,7 @@ class SessionStorage:
             cache_fd = self._open_cache_root(create=True)
         except OSError as error:
             raise SessionSafetyError(
-                "cache-root содержит ссылку или недоступен"
+                "cache root contains a link or is unavailable"
             ) from error
         try:
             while True:
@@ -116,7 +116,7 @@ class SessionStorage:
             finally:
                 os.close(session_fd)
         except OSError as error:
-            raise SessionSafetyError("не удалось безопасно создать сессию") from error
+            raise SessionSafetyError("could not safely create session") from error
         finally:
             os.close(cache_fd)
         return Session(path=session_path, manifest=manifest)
@@ -125,7 +125,7 @@ class SessionStorage:
         session_path = self._validate_session_path(session)
         file_path = Path(path)
         if file_path.is_symlink() or not file_path.is_file():
-            raise SessionSafetyError("зарегистрировать можно только обычный файл")
+            raise SessionSafetyError("only regular files can be registered")
         relative = self._safe_relative_path(session_path, file_path)
         owned_files = session.manifest.owned_files
         if relative not in owned_files:
@@ -145,15 +145,15 @@ class SessionStorage:
         size = 0
         for path in session_path.rglob("*"):
             if path.is_symlink():
-                raise SessionSafetyError("символьная ссылка запрещена в сессии")
+                raise SessionSafetyError("symbolic links are forbidden in the session")
             if not self._is_within(session_path, path):
-                raise SessionSafetyError("путь выходит за пределы сессии")
+                raise SessionSafetyError("path is outside the session")
             if path.is_file():
                 size += path.stat().st_size
         return size
 
     def close_session(self, session: Session) -> bool:
-        """Удаляет только собственную подтверждённую временную сессию."""
+        """Remove only an owned and verified temporary session."""
         session_path = Path(session.path)
         if (
             session_path.parent != self.cache_root
@@ -184,7 +184,7 @@ class SessionStorage:
             os.close(cache_fd)
 
     def cleanup_orphaned_sessions(self) -> tuple[Path, ...]:
-        """Удаляет подтверждённые сессии, чей процесс-владелец уже завершился."""
+        """Remove verified sessions whose owner process has already exited."""
         try:
             cache_fd = self._open_cache_root()
         except OSError:
@@ -356,7 +356,7 @@ class SessionStorage:
                 relative = "/".join((*relative_parts, name))
                 if stat.S_ISREG(mode):
                     if relative != "manifest.json" and relative not in owned_paths:
-                        raise SessionSafetyError("обнаружен незарегистрированный файл")
+                        raise SessionSafetyError("unregistered file detected")
                     files.append(name)
                 elif stat.S_ISDIR(mode):
                     child_fd = self._open_directory(name, dir_fd=directory_fd)
@@ -365,12 +365,12 @@ class SessionStorage:
                     )
                     if child_contents is None:
                         os.close(child_fd)
-                        raise SessionSafetyError("каталог сессии небезопасен")
+                        raise SessionSafetyError("session directory is unsafe")
                     directories.append(
                         _RemovableDirectory(name, child_fd, child_contents)
                     )
                 else:
-                    raise SessionSafetyError("обнаружен небезопасный объект")
+                    raise SessionSafetyError("unsafe object detected")
         except (OSError, SessionSafetyError):
             self._close_contents(_RemovableContents((), tuple(directories)))
             return None
@@ -382,7 +382,7 @@ class SessionStorage:
         for directory in reversed(contents.directories):
             self._remove_contents(directory.fd, directory.contents)
             if not self._is_same_directory(directory_fd, directory.name, directory.fd):
-                raise OSError("каталог был подменён во время удаления")
+                raise OSError("directory was replaced during deletion")
             os.rmdir(directory.name, dir_fd=directory_fd)
 
     @classmethod
@@ -437,22 +437,22 @@ class SessionStorage:
             or relative.is_absolute()
             or any(part in ("", ".", "..") for part in relative.parts)
         ):
-            raise SessionSafetyError("недопустимый путь в manifest")
+            raise SessionSafetyError("invalid path in manifest")
 
     def _validate_session_path(self, session: Session) -> Path:
         session_path = Path(session.path)
         if session_path.name != session.manifest.session_id:
-            raise SessionSafetyError("имя сессии не совпадает с manifest")
+            raise SessionSafetyError("session name does not match manifest")
         try:
             parsed_id = uuid.UUID(session_path.name)
         except ValueError as error:
-            raise SessionSafetyError("имя сессии не является UUID") from error
+            raise SessionSafetyError("session name is not a UUID") from error
         if str(parsed_id) != session_path.name:
-            raise SessionSafetyError("имя сессии не является каноническим UUID")
+            raise SessionSafetyError("session name is not a canonical UUID")
         if not self._is_within(self.cache_root, session_path, strict=True):
-            raise SessionSafetyError("сессия находится вне cache-root")
+            raise SessionSafetyError("session is outside the cache root")
         if session_path.is_symlink() or not session_path.is_dir():
-            raise SessionSafetyError("каталог сессии небезопасен")
+            raise SessionSafetyError("session directory is unsafe")
         return session_path
 
     @staticmethod
@@ -470,18 +470,18 @@ class SessionStorage:
 
     def _safe_relative_path(self, session_path: Path, path: Path) -> str:
         if not self._is_within(session_path, path, strict=True):
-            raise SessionSafetyError("файл находится вне сессии")
+            raise SessionSafetyError("file is outside the session")
         try:
             relative = path.relative_to(session_path)
         except ValueError as error:
-            raise SessionSafetyError("файл находится вне сессии") from error
+            raise SessionSafetyError("file is outside the session") from error
         if any(part in ("", ".", "..") for part in relative.parts):
-            raise SessionSafetyError("недопустимый относительный путь")
+            raise SessionSafetyError("invalid relative path")
         current = session_path
         for component in relative.parts:
             current /= component
             if current.is_symlink():
-                raise SessionSafetyError("символьная ссылка запрещена в пути")
+                raise SessionSafetyError("symbolic links are forbidden in paths")
         return relative.as_posix()
 
     @staticmethod

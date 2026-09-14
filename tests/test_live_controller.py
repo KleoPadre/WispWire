@@ -21,7 +21,7 @@ from wispwire.tshark import TsharkReadError
 
 def packet(number: int) -> PacketSummary:
     return PacketSummary(
-        number, "0.000000", "192.0.2.1", "192.0.2.53", "DNS", 74, "Запрос"
+        number, "0.000000", "192.0.2.1", "192.0.2.53", "DNS", 74, "Request"
     )
 
 
@@ -225,7 +225,7 @@ def test_controller_reports_failure_without_continue_at_size_limit() -> None:
 
     assert "continue" not in capture.calls
     assert any(
-        "лимит" in item.message for item in events if isinstance(item, LiveFailure)
+        "limit" in item.message for item in events if isinstance(item, LiveFailure)
     )
 
 
@@ -295,7 +295,7 @@ def test_controller_increments_generation_after_successful_restart(
 
 def test_controller_keeps_source_when_restart_fails() -> None:
     capture = FakeCapture()
-    capture.restart_error = CaptureError("не удалось перезапустить захват")
+    capture.restart_error = CaptureError("could not restart capture")
     source = FakeSource({})
     controller = LiveCaptureController(capture, source, poll_interval=0.05)
 
@@ -311,7 +311,7 @@ def test_controller_keeps_source_when_restart_fails() -> None:
 
     assert "reset" not in source.calls
     assert any(
-        item.message == "не удалось перезапустить захват"
+        item.message == "could not restart capture"
         for item in events
         if isinstance(item, LiveFailure)
     )
@@ -319,7 +319,7 @@ def test_controller_keeps_source_when_restart_fails() -> None:
 
 def test_controller_acknowledges_failed_restart_with_new_generation() -> None:
     capture = FakeCapture()
-    capture.restart_error = CaptureError("не удалось перезапустить захват")
+    capture.restart_error = CaptureError("could not restart capture")
     source = FakeSource({})
     controller = LiveCaptureController(capture, source, poll_interval=0.05)
 
@@ -337,7 +337,7 @@ def test_controller_acknowledges_failed_restart_with_new_generation() -> None:
     controller.submit("quit")
     controller.join()
 
-    assert LiveFailure("не удалось перезапустить захват", generation=1) in events
+    assert LiveFailure("could not restart capture", generation=1) in events
     assert LiveStateChanged(CaptureState.FAILED, 0, 12, generation=1) in events
     assert "reset" not in source.calls
 
@@ -346,7 +346,7 @@ def test_controller_stops_restarted_capture_when_source_reset_fails() -> None:
     log: list[str] = []
     capture = FakeCapture(log=log)
     source = FakeSource({}, log=log)
-    source.reset_error = SessionSafetyError("не удалось закрыть старый индекс")
+    source.reset_error = SessionSafetyError("could not close the old index")
     controller = LiveCaptureController(capture, source, poll_interval=0.05)
 
     controller.start()
@@ -367,7 +367,7 @@ def test_controller_stops_restarted_capture_when_source_reset_fails() -> None:
 
     assert log.index("capture:restart") < log.index("source:reset")
     assert log.index("source:reset") < log.index("capture:stop")
-    assert LiveFailure("не удалось закрыть старый индекс", generation=1) in events
+    assert LiveFailure("could not close the old index", generation=1) in events
     assert LiveStateChanged(CaptureState.FAILED, 0, 12, generation=1) in events
 
 
@@ -376,7 +376,7 @@ def test_controller_reports_tshark_ingest_error_without_closing_session(
 ) -> None:
     capture = FakeCapture(segments=(tmp_path / "one.pcapng",))
     source = FakeSource({})
-    source.ingest_error = TsharkReadError("TShark не прочитал сегмент")
+    source.ingest_error = TsharkReadError("TShark did not read segment")
     controller = LiveCaptureController(capture, source, poll_interval=0.001)
 
     controller.start()
@@ -389,7 +389,7 @@ def test_controller_reports_tshark_ingest_error_without_closing_session(
     controller.join()
 
     assert any(
-        item.message == "TShark не прочитал сегмент"
+        item.message == "TShark did not read segment"
         for item in events
         if isinstance(item, LiveFailure)
     )
@@ -397,7 +397,7 @@ def test_controller_reports_tshark_ingest_error_without_closing_session(
 
 def test_controller_closes_once_after_collect_error() -> None:
     capture = FakeCapture()
-    capture.collect_error = CaptureError("сломанный сегмент")
+    capture.collect_error = CaptureError("broken segment")
     source = FakeSource({})
     controller = LiveCaptureController(capture, source, poll_interval=0.001)
 
@@ -409,7 +409,7 @@ def test_controller_closes_once_after_collect_error() -> None:
     controller.join()
 
     assert [item.message for item in events if isinstance(item, LiveFailure)] == [
-        "сломанный сегмент"
+        "broken segment"
     ]
     assert capture.calls.count("close") == 1
     assert source.calls.count("close") == 1
@@ -419,16 +419,16 @@ def test_controller_join_reports_close_error_after_trying_both_resources(
     capsys,
 ) -> None:
     capture = FakeCapture()
-    capture.close_error = OSError("сессия захвата не закрыта")
+    capture.close_error = OSError("capture session was not closed")
     source = FakeSource({})
-    source.close_error = OSError("сессия индекса не закрыта")
+    source.close_error = OSError("index session was not closed")
     controller = LiveCaptureController(capture, source, poll_interval=0.05)
 
     controller.start()
     assert wait_until(lambda: capture.calls)
     controller.submit("quit")
 
-    with pytest.raises(CaptureError, match="сессия индекса не закрыта"):
+    with pytest.raises(CaptureError, match="index session was not closed"):
         controller.join()
 
     assert source.calls.count("close") == 1

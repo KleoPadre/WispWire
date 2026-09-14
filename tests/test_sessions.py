@@ -214,7 +214,7 @@ def test_cleanup_skips_session_with_live_pid(tmp_path: Path) -> None:
 
 def test_cleanup_skips_session_containing_symbolic_link(tmp_path: Path) -> None:
     external = tmp_path / "external.txt"
-    external.write_text("не удалять", encoding="utf-8")
+    external.write_text("do not delete", encoding="utf-8")
     storage = SessionStorage(
         cache_root=tmp_path, pid=123, is_pid_alive=lambda _pid: False
     )
@@ -224,7 +224,7 @@ def test_cleanup_skips_session_containing_symbolic_link(tmp_path: Path) -> None:
     assert storage.cleanup_orphaned_sessions() == ()
     assert session.path.is_dir()
     assert (session.path / "manifest.json").is_file()
-    assert external.read_text(encoding="utf-8") == "не удалять"
+    assert external.read_text(encoding="utf-8") == "do not delete"
 
 
 def test_close_session_does_not_follow_replacement_before_unlink(
@@ -236,7 +236,7 @@ def test_close_session_does_not_follow_replacement_before_unlink(
     external = tmp_path / "external"
     external.mkdir()
     external_manifest = external / "manifest.json"
-    external_manifest.write_text("не удалять", encoding="utf-8")
+    external_manifest.write_text("do not delete", encoding="utf-8")
     real_unlink = os.unlink
     replaced = False
 
@@ -254,7 +254,7 @@ def test_close_session_does_not_follow_replacement_before_unlink(
 
     assert storage.close_session(session) is False
     assert replaced is True
-    assert external_manifest.read_text(encoding="utf-8") == "не удалять"
+    assert external_manifest.read_text(encoding="utf-8") == "do not delete"
     assert (moved_session / "manifest.json").exists() is False
 
 
@@ -265,13 +265,13 @@ def test_close_session_does_not_follow_replaced_subdirectory_before_unlink(
     session = storage.create_session()
     payload = session.path / "segments" / "part-0001.pcapng"
     payload.parent.mkdir()
-    payload.write_bytes("временный файл".encode())
+    payload.write_bytes(b"temporary file")
     session = storage.register_file(session, payload)
     moved_segments = session.path / "moved-segments"
     external = tmp_path / "external"
     external.mkdir()
     external_payload = external / payload.name
-    external_payload.write_bytes("не удалять".encode())
+    external_payload.write_bytes(b"do not delete")
     real_unlink = os.unlink
     replaced = False
 
@@ -290,7 +290,7 @@ def test_close_session_does_not_follow_replaced_subdirectory_before_unlink(
 
     assert storage.close_session(session) is False
     assert replaced is True
-    assert external_payload.read_bytes() == "не удалять".encode()
+    assert external_payload.read_bytes() == b"do not delete"
     assert (moved_segments / payload.name).exists() is False
 
 
@@ -324,7 +324,7 @@ def test_cleanup_returns_empty_and_preserves_session_on_unlink_error(
 
     def fail_unlink(_path: str | bytes | int, *, dir_fd: int | None = None) -> None:
         del dir_fd
-        raise OSError("ошибка удаления")
+        raise OSError("deletion error")
 
     monkeypatch.setattr(os, "unlink", fail_unlink)
 
@@ -344,7 +344,7 @@ def test_cleanup_returns_empty_and_leaves_directory_on_rmdir_error(
 
     def fail_session_rmdir(path: str | bytes, *, dir_fd: int | None = None) -> None:
         if Path(os.fsdecode(path)).name == session.path.name:
-            raise OSError("ошибка удаления каталога")
+            raise OSError("directory deletion error")
         real_rmdir(path, dir_fd=dir_fd)
 
     monkeypatch.setattr(os, "rmdir", fail_session_rmdir)
@@ -358,7 +358,7 @@ def test_cleanup_skips_dangerous_candidates_and_preserves_external_file(
     tmp_path: Path,
 ) -> None:
     external = tmp_path / "external.txt"
-    external.write_text("не удалять", encoding="utf-8")
+    external.write_text("do not delete", encoding="utf-8")
     storage = SessionStorage(
         cache_root=tmp_path, pid=123, is_pid_alive=lambda _pid: False
     )
@@ -385,7 +385,7 @@ def test_cleanup_skips_dangerous_candidates_and_preserves_external_file(
     linked.symlink_to(external)
 
     assert storage.cleanup_orphaned_sessions() == ()
-    assert external.read_text(encoding="utf-8") == "не удалять"
+    assert external.read_text(encoding="utf-8") == "do not delete"
     assert invalid_uuid.exists()
     assert malformed.exists()
     assert traversal.exists()
@@ -425,7 +425,7 @@ def test_cleanup_skips_overflowing_pid_and_continues(
 
     def report_pid(pid: int, _signal: int) -> None:
         if pid == 123:
-            raise OverflowError("PID не представим в системном типе")
+            raise OverflowError("PID cannot be represented by the system type")
         raise ProcessLookupError
 
     monkeypatch.setattr(os, "kill", report_pid)
@@ -441,7 +441,7 @@ def test_cleanup_skips_session_with_unregistered_regular_file(tmp_path: Path) ->
     )
     session = storage.create_session()
     unregistered = session.path / "unregistered.pcapng"
-    expected = "не удалять".encode()
+    expected = b"do not delete"
     unregistered.write_bytes(expected)
 
     assert storage.cleanup_orphaned_sessions() == ()
@@ -462,7 +462,7 @@ def test_close_session_rejects_substituted_manifest_and_preserves_external_file(
     storage = SessionStorage(cache_root=tmp_path, pid=123)
     session = storage.create_session()
     external = tmp_path / "external.txt"
-    external.write_text("не удалять", encoding="utf-8")
+    external.write_text("do not delete", encoding="utf-8")
     (session.path / "manifest.json").write_text(
         json.dumps(
             {
@@ -478,4 +478,4 @@ def test_close_session_rejects_substituted_manifest_and_preserves_external_file(
 
     assert storage.close_session(session) is False
     assert session.path.is_dir()
-    assert external.read_text(encoding="utf-8") == "не удалять"
+    assert external.read_text(encoding="utf-8") == "do not delete"

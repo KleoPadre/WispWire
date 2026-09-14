@@ -22,33 +22,33 @@ from wispwire.tui import WispWireApp
 from wispwire.wireshark import inspect_tool
 
 app = typer.Typer(
-    help="WispWire — терминальная утилита для диагностики сетевого анализа."
+    help="WispWire is a terminal utility for network-analysis diagnostics."
 )
 console = Console()
 
 
 @app.callback()
 def main() -> None:
-    """Запустить WispWire."""
+    """Run WispWire."""
 
 
 @app.command()
 def doctor() -> None:
-    """Проверить утилиты и доступность live-захвата."""
+    """Check tools and live-capture availability."""
     report = collect_doctor_report()
-    console.print("[bold]Диагностика WispWire[/bold]")
+    console.print("[bold]WispWire Diagnostics[/bold]")
     console.print(f"Python: {report.python_version}")
-    console.print(f"Версия WispWire: {report.wispwire_version}")
-    sqlite_status = "OK" if report.sqlite_fts5.available else "ОШИБКА"
+    console.print(f"WispWire version: {report.wispwire_version}")
+    sqlite_status = "OK" if report.sqlite_fts5.available else "ERROR"
     console.print(f"SQLite FTS5 trigram: {sqlite_status}")
 
-    tools_table = Table(title="Утилиты")
-    tools_table.add_column("Утилита")
-    tools_table.add_column("Путь")
-    tools_table.add_column("Версия")
-    tools_table.add_column("Статус")
+    tools_table = Table(title="Tools")
+    tools_table.add_column("Tool")
+    tools_table.add_column("Path")
+    tools_table.add_column("Version")
+    tools_table.add_column("Status")
     for tool in report.tools:
-        status = "OK" if tool.error is None else "ОШИБКА"
+        status = "OK" if tool.error is None else "ERROR"
         tools_table.add_row(
             tool.name,
             str(tool.path) if tool.path is not None else "—",
@@ -59,17 +59,17 @@ def doctor() -> None:
 
     _print_interfaces(report.interfaces)
     if not report.sqlite_fts5.available:
-        console.print(f"[yellow]Предупреждение: {report.sqlite_fts5.error}[/yellow]")
+        console.print(f"[yellow]Warning: {report.sqlite_fts5.error}[/yellow]")
     if report.capture_warning is not None:
-        console.print(f"[yellow]Предупреждение: {report.capture_warning}[/yellow]")
+        console.print(f"[yellow]Warning: {report.capture_warning}[/yellow]")
 
 
 @app.command()
 def interfaces() -> None:
-    """Показать доступные интерфейсы для live-захвата."""
+    """Show available interfaces for live capture."""
     available_interfaces = list_interfaces()
     if not available_interfaces:
-        console.print("Интерфейсы не найдены. Проверьте dumpcap и права доступа.")
+        console.print("No interfaces found. Check dumpcap and capture permissions.")
         return
 
     _print_interfaces(available_interfaces)
@@ -77,26 +77,32 @@ def interfaces() -> None:
 
 @app.command()
 def capture(
-    interface: str = typer.Option(..., "--iface", help="Интерфейс для live-захвата."),
+    interface: str = typer.Option(..., "--iface", help="Interface for live capture."),
 ) -> None:
-    """Запустить live-захват в live-TUI."""
+    """Start live capture in the live-TUI."""
     dumpcap = inspect_tool("dumpcap")
     if dumpcap.path is None or dumpcap.error is not None:
-        console.print("dumpcap недоступен. Запустите `wispwire doctor` для проверки.")
+        console.print(
+            "dumpcap is unavailable. Run `wispwire doctor` to check the environment."
+        )
         raise typer.Exit(code=1)
 
     mergecap = inspect_tool("mergecap")
     if mergecap.path is None or mergecap.error is not None:
-        console.print("mergecap недоступен. Запустите `wispwire doctor` для проверки.")
+        console.print(
+            "mergecap is unavailable. Run `wispwire doctor` to check the environment."
+        )
         raise typer.Exit(code=1)
 
     if interface not in list_interfaces():
-        console.print(f"Интерфейс {interface} недоступен.")
+        console.print(f"Interface {interface} is unavailable.")
         raise typer.Exit(code=2)
 
     tshark = inspect_tool("tshark")
     if tshark.path is None or tshark.error is not None:
-        console.print("TShark недоступен. Запустите `wispwire doctor` для проверки.")
+        console.print(
+            "TShark is unavailable. Run `wispwire doctor` to check the environment."
+        )
         raise typer.Exit(code=1)
     dumpcap_path = dumpcap.path
     mergecap_path = mergecap.path
@@ -133,19 +139,17 @@ def capture(
         if saved_path is not None:
             _open_capture_in_tui(saved_path)
     except CaptureError as error:
-        console.print(f"Ошибка live-захвата: {error}")
+        console.print(f"Live-capture error: {error}")
         raise typer.Exit(code=1) from None
 
 
 @app.command()
 def open(
     capture_path: Path,
-    limit: int = typer.Option(
-        1000, min=1, help="Максимальное число выводимых пакетов."
-    ),
+    limit: int = typer.Option(1000, min=1, help="Maximum number of packets to show."),
     display_filter: str = typer.Option("", "--filter", help="Display filter TShark."),
 ) -> None:
-    """Открыть готовый захват в TUI."""
+    """Open an existing capture in the TUI."""
     _open_capture_in_tui(capture_path, limit=limit, display_filter=display_filter)
 
 
@@ -155,17 +159,19 @@ def _open_capture_in_tui(
     limit: int = 1000,
     display_filter: str = "",
 ) -> None:
-    """Открыть существующий файл захвата через общий файловый TUI."""
+    """Open an existing capture file in the shared file TUI."""
     if not capture_path.exists():
-        console.print("Файл захвата не найден.")
+        console.print("Capture file not found.")
         raise typer.Exit(code=2)
     if not capture_path.is_file():
-        console.print("Ожидается файл захвата.")
+        console.print("Expected a capture file.")
         raise typer.Exit(code=2)
 
     status = inspect_tool("tshark")
     if status.path is None:
-        console.print("TShark недоступен. Запустите `wispwire doctor` для проверки.")
+        console.print(
+            "TShark is unavailable. Run `wispwire doctor` to check the environment."
+        )
         raise typer.Exit(code=1)
     tshark_path = status.path
 
@@ -174,7 +180,7 @@ def _open_capture_in_tui(
         source = FilePacketSource(capture_path, tshark_path)
         packets = source.load(limit)
         if not packets:
-            console.print("Пакеты не найдены.")
+            console.print("No packets found.")
             return
 
         def read_details(packet: PacketSummary) -> PacketDetails:
@@ -188,7 +194,7 @@ def _open_capture_in_tui(
             initial_filter=display_filter,
         ).run(mouse=False)
     except TsharkReadError as error:
-        console.print(f"Не удалось прочитать захват: {error}")
+        console.print(f"Could not read capture: {error}")
         raise typer.Exit(code=1) from None
     finally:
         if source is not None:
@@ -196,7 +202,7 @@ def _open_capture_in_tui(
 
 
 def _capture_destination() -> Path:
-    """Вернуть новый постоянный путь для live-захвата, не создавая файл."""
+    """Return a new persistent live-capture path without creating the file."""
     catalog = Path.home() / "WispWire" / "Captures"
     catalog.mkdir(parents=True, exist_ok=True)
     stem = f"capture_{datetime.now().astimezone():%Y-%m-%d_%H-%M-%S}"
@@ -209,12 +215,12 @@ def _capture_destination() -> Path:
 
 
 def _print_interfaces(interfaces: tuple[str, ...]) -> None:
-    """Вывести нумерованный список сетевых интерфейсов."""
+    """Print a numbered list of network interfaces."""
     if not interfaces:
-        console.print("Интерфейсы не найдены.")
+        console.print("No interfaces found.")
         return
 
-    console.print("[bold]Интерфейсы[/bold]")
+    console.print("[bold]Interfaces[/bold]")
     for number, interface in enumerate(interfaces, start=1):
         console.print(f"{number}. {interface}")
 

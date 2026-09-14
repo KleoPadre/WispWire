@@ -1,4 +1,4 @@
-"""Общие helpers для отображения пакетов в TUI."""
+"""Shared helpers for rendering packets in the TUI."""
 
 from rich.text import Text
 from textual.widgets import DataTable
@@ -42,7 +42,7 @@ _PROTOCOL_STYLES = {
 
 
 def packet_row_values(packet: PacketSummary, wide: bool) -> tuple[Text, ...]:
-    """Вернуть literal-Rich значения строки таблицы."""
+    """Return literal Rich values for a table row."""
 
     values = (
         Text(str(packet.number)),
@@ -60,7 +60,7 @@ def packet_row_values(packet: PacketSummary, wide: bool) -> tuple[Text, ...]:
 
 
 def protocol_badge(protocol: str) -> Text:
-    """Вернуть цветной literal-Rich badge протокола."""
+    """Return a colored literal Rich protocol badge."""
 
     style = _PROTOCOL_STYLES.get(protocol.upper(), _DEFAULT_PROTOCOL_STYLE)
     return Text(protocol, style=style)
@@ -69,7 +69,7 @@ def protocol_badge(protocol: str) -> Text:
 def rebuild_packet_table(
     table: DataTable, packets: tuple[PacketSummary, ...], wide: bool
 ) -> None:
-    """Перестроить таблицу, сохраняя выбранную строку в пределах выдачи."""
+    """Rebuild the table while keeping the selected row within the result set."""
 
     selected_row = table.cursor_row
     table.clear(columns=True)
@@ -83,7 +83,7 @@ def rebuild_packet_table(
 
 
 def render_packet_details(packet: PacketSummary, details: PacketDetails) -> Text:
-    """Собрать literal-Rich текст подробностей пакета."""
+    """Build literal Rich text for packet details."""
 
     return Text(
         "\n".join(
@@ -96,7 +96,7 @@ def render_packet_details(packet: PacketSummary, details: PacketDetails) -> Text
                 f"Length: {packet.length}",
                 f"Info: {packet.info}",
                 "",
-                "Дерево протоколов:",
+                "Protocol tree:",
                 details.protocol_tree,
                 "",
                 "Hex/ASCII:",

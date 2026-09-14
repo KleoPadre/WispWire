@@ -39,7 +39,7 @@ def test_inspect_tool_reports_missing_program() -> None:
     status = inspect_tool("dumpcap", which=lambda _: None)
 
     assert status.path is None
-    assert status.error == "утилита не найдена в PATH"
+    assert status.error == "tool not found in PATH"
 
 
 def test_inspect_tool_reports_unsuccessful_version_command() -> None:
@@ -104,7 +104,7 @@ def failing_version_run(
     assert text is True
     assert check is False
     assert timeout == 5
-    return CompletedProcess(["tshark", "--version"], 1, "", "ошибка")
+    return CompletedProcess(["tshark", "--version"], 1, "", "failed")
 
 
 def unknown_version_run(
@@ -120,4 +120,4 @@ def unknown_version_run(
     assert text is True
     assert check is False
     assert timeout == 5
-    return CompletedProcess(["tshark", "--version"], 0, "версия неизвестна\n", "")
+    return CompletedProcess(["tshark", "--version"], 0, "unknown version\n", "")

@@ -1,4 +1,4 @@
-"""Источник пакетов готового файла для TUI."""
+"""Packet source for an existing capture file in the TUI."""
 
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
@@ -12,7 +12,7 @@ from wispwire.tshark import TsharkReadError, iter_packet_summaries
 
 @dataclass(frozen=True)
 class PacketQuery:
-    """Запрос к файловому источнику пакетов."""
+    """Request for a file packet source."""
 
     display_filter: str = ""
     info_query: str = ""
@@ -21,14 +21,14 @@ class PacketQuery:
 
 @dataclass(frozen=True)
 class PacketQueryResult:
-    """Результат фильтрации пакетов для TUI."""
+    """Packet filtering result for the TUI."""
 
     packets: tuple[PacketSummary, ...]
     error: str | None = None
 
 
 class FilePacketSource:
-    """Читает готовый захват и держит временный индекс сводок."""
+    """Read an existing capture and keep a temporary summary index."""
 
     def __init__(
         self,
@@ -51,13 +51,13 @@ class FilePacketSource:
 
     @property
     def session_path(self) -> Path:
-        """Путь временной сессии для тестов и диагностики."""
+        """Temporary session path for tests and diagnostics."""
         return self._session.path
 
     def load(self, limit: int) -> tuple[PacketSummary, ...]:
-        """Прочитать начальные сводки и заполнить индекс."""
+        """Read initial summaries and populate the index."""
         if limit < 1:
-            raise ValueError("Размер страницы должен быть положительным")
+            raise ValueError("Page size must be positive")
 
         packets = tuple(
             self._iter_summaries(
@@ -72,9 +72,9 @@ class FilePacketSource:
         return packets
 
     def query(self, query: PacketQuery) -> PacketQueryResult:
-        """Вернуть пакеты, подходящие под display filter и поиск по Info."""
+        """Return packets matching the display filter and Info search."""
         if query.limit < 1:
-            raise ValueError("Размер страницы должен быть положительным")
+            raise ValueError("Page size must be positive")
 
         display_filter = query.display_filter.strip()
         info_query = query.info_query.strip()
@@ -117,7 +117,7 @@ class FilePacketSource:
         )
 
     def close(self) -> None:
-        """Закрыть индекс и удалить временную сессию."""
+        """Close the index and remove the temporary session."""
         if self._closed:
             return
         self._index.close()

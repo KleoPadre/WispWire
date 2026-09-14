@@ -1,4 +1,4 @@
-"""SQLite-индекс сводок пакетов."""
+"""SQLite index for packet summaries."""
 
 import sqlite3
 from collections.abc import Callable, Iterable
@@ -64,7 +64,7 @@ packets.info, packets.info_casefold
 
 @dataclass(frozen=True)
 class PacketRecord:
-    """Поля пакета до добавления в индекс."""
+    """Packet fields before insertion into the index."""
 
     global_number: int
     segment_id: str
@@ -81,7 +81,7 @@ class PacketRecord:
 
 @dataclass(frozen=True)
 class IndexedPacket:
-    """Пакет, прочитанный из индекса вместе с внутренним идентификатором."""
+    """Packet read from the index together with its internal identifier."""
 
     row_id: int
     global_number: int
@@ -100,7 +100,7 @@ class IndexedPacket:
 
 @dataclass(frozen=True)
 class PacketCursor:
-    """Позиция последнего пакета в устойчивой выдаче."""
+    """Position of the last packet in a stable result set."""
 
     global_number: int
     row_id: int
@@ -108,18 +108,18 @@ class PacketCursor:
 
 @dataclass(frozen=True)
 class PacketPage:
-    """Страница пакетов и курсор следующей страницы."""
+    """Packet page and next-page cursor."""
 
     items: tuple[IndexedPacket, ...]
     next_cursor: PacketCursor | None
 
 
 class PacketIndexUnavailableError(RuntimeError):
-    """SQLite не может создать индекс, необходимый для поиска."""
+    """SQLite cannot create the index required for search."""
 
 
 class PacketIndex:
-    """Хранить сводки пакетов в SQLite-файле по переданному пути."""
+    """Store packet summaries in a SQLite file at the given path."""
 
     def __init__(
         self,
@@ -131,21 +131,21 @@ class PacketIndex:
         status = feature_check()
         if not status.available:
             raise PacketIndexUnavailableError(
-                status.error or "SQLite FTS5 trigram недоступен"
+                status.error or "SQLite FTS5 trigram is unavailable"
             )
         self._connection = sqlite3.connect(path, check_same_thread=check_same_thread)
         self._connection.row_factory = sqlite3.Row
         self._create_schema()
 
     def append(self, records: Iterable[PacketRecord]) -> int:
-        """Добавить пакет сводок одной SQLite-транзакцией."""
+        """Add a batch of packet summaries in one SQLite transaction."""
         rows = tuple(_record_to_row(record) for record in records)
         with self._connection:
             self._connection.executemany(INSERT_PACKET_SQL, rows)
         return len(rows)
 
     def list_page(self, limit: int, after: PacketCursor | None = None) -> PacketPage:
-        """Вернуть страницу пакетов в стабильном порядке."""
+        """Return a page of packets in stable order."""
         _validate_limit(limit)
         cursor_sql, cursor_parameters = _cursor_clause(after)
         rows = self._connection.execute(
@@ -158,10 +158,10 @@ class PacketIndex:
     def search_info(
         self, query: str, limit: int, after: PacketCursor | None = None
     ) -> PacketPage:
-        """Найти подстроку в ``Info`` без учёта регистра."""
+        """Find a substring in ``Info`` case-insensitively."""
         _validate_limit(limit)
         if not query:
-            raise ValueError("Поисковый запрос не может быть пустым")
+            raise ValueError("Search query cannot be empty")
 
         cursor_sql, cursor_parameters = _cursor_clause(after, prefix="AND")
         rows = self._connection.execute(
@@ -174,7 +174,7 @@ class PacketIndex:
         return _page_from_rows(rows, limit)
 
     def close(self) -> None:
-        """Закрыть SQLite-соединение с индексом."""
+        """Close the SQLite index connection."""
         self._connection.close()
 
     def _create_schema(self) -> None:
@@ -252,4 +252,4 @@ def _fts_phrase(query: str) -> str:
 
 def _validate_limit(limit: int) -> None:
     if limit < 1:
-        raise ValueError("Размер страницы должен быть положительным")
+        raise ValueError("Page size must be positive")

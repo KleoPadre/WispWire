@@ -11,7 +11,7 @@ from wispwire.index import (
 from wispwire.sqlite_support import SqliteFeatureStatus
 
 
-def record(global_number: int, *, info: str = "Запрос", url: str = "") -> PacketRecord:
+def record(global_number: int, *, info: str = "Request", url: str = "") -> PacketRecord:
     return PacketRecord(
         global_number=global_number,
         segment_id="segment-1",
@@ -30,7 +30,7 @@ def record(global_number: int, *, info: str = "Запрос", url: str = "") -> 
 def test_append_stores_every_packet_field(tmp_path: Path) -> None:
     index = PacketIndex(tmp_path / "packets.sqlite3")
 
-    appended = index.append([record(7, info="Запрос TeLeGrAm", url="api.example.com")])
+    appended = index.append([record(7, info="Request TeLeGrAm", url="api.example.com")])
 
     page = index.list_page(limit=10)
     assert appended == 1
@@ -45,8 +45,8 @@ def test_append_stores_every_packet_field(tmp_path: Path) -> None:
     assert page.items[0].url == "api.example.com"
     assert page.items[0].protocol == "DNS"
     assert page.items[0].length == 82
-    assert page.items[0].info == "Запрос TeLeGrAm"
-    assert page.items[0].info_casefold == "запрос telegram"
+    assert page.items[0].info == "Request TeLeGrAm"
+    assert page.items[0].info_casefold == "request telegram"
 
 
 def test_append_rolls_back_the_whole_batch_on_constraint_error(tmp_path: Path) -> None:
@@ -61,12 +61,12 @@ def test_append_rolls_back_the_whole_batch_on_constraint_error(tmp_path: Path) -
 def test_packet_index_does_not_create_file_without_fts5_trigram(tmp_path: Path) -> None:
     index_path = tmp_path / "packets.sqlite3"
 
-    with pytest.raises(PacketIndexUnavailableError, match="trigram недоступен"):
+    with pytest.raises(PacketIndexUnavailableError, match="trigram is unavailable"):
         PacketIndex(
             index_path,
             feature_check=lambda: SqliteFeatureStatus(
                 available=False,
-                error="SQLite FTS5 trigram недоступен",
+                error="SQLite FTS5 trigram is unavailable",
             ),
         )
 
@@ -89,7 +89,7 @@ def test_list_page_does_not_duplicate_or_skip_when_new_packet_is_appended(
 
 def test_search_info_finds_casefolded_substring(tmp_path: Path) -> None:
     index = PacketIndex(tmp_path / "packets.sqlite3")
-    index.append([record(1, info="Запрос TeLeGrAm API"), record(2, info="DNS")])
+    index.append([record(1, info="Request TeLeGrAm API"), record(2, info="DNS")])
 
     page = index.search_info("telegram", limit=10)
 
@@ -98,9 +98,9 @@ def test_search_info_finds_casefolded_substring(tmp_path: Path) -> None:
 
 def test_search_info_treats_quotation_mark_as_literal_text(tmp_path: Path) -> None:
     index = PacketIndex(tmp_path / "packets.sqlite3")
-    index.append([record(1, info='Поле "значение"'), record(2, info="Другое")])
+    index.append([record(1, info='Field "value"'), record(2, info="Other")])
 
-    page = index.search_info('"значение"', limit=10)
+    page = index.search_info('"value"', limit=10)
 
     assert [packet.global_number for packet in page.items] == [1]
 
@@ -127,12 +127,12 @@ def test_search_info_paginates_matches_with_cursor(tmp_path: Path) -> None:
 def test_list_page_rejects_non_positive_limit(tmp_path: Path, limit: int) -> None:
     index = PacketIndex(tmp_path / "packets.sqlite3")
 
-    with pytest.raises(ValueError, match="Размер страницы"):
+    with pytest.raises(ValueError, match="Page size"):
         index.list_page(limit=limit)
 
 
 def test_search_info_rejects_empty_query(tmp_path: Path) -> None:
     index = PacketIndex(tmp_path / "packets.sqlite3")
 
-    with pytest.raises(ValueError, match="Поисковый запрос"):
+    with pytest.raises(ValueError, match="Search query"):
         index.search_info("", limit=10)

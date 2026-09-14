@@ -54,9 +54,9 @@ def test_read_packet_details_rejects_non_positive_frame_without_running_tshark()
     def unexpected_run(
         *_args: object, **_kwargs: object
     ) -> subprocess.CompletedProcess[str]:
-        raise AssertionError("TShark не должен запускаться")
+        raise AssertionError("TShark must not be started")
 
-    with pytest.raises(TsharkReadError, match="не меньше 1"):
+    with pytest.raises(TsharkReadError, match="at least 1"):
         read_packet_details(
             Path("capture.pcapng"), Path("tshark"), 0, run=unexpected_run
         )
@@ -66,35 +66,35 @@ def test_read_packet_details_reports_tshark_startup_error() -> None:
     def failing_run(
         *_args: object, **_kwargs: object
     ) -> subprocess.CompletedProcess[str]:
-        raise OSError("Нет такого файла")
+        raise OSError("No such file")
 
-    with pytest.raises(TsharkReadError, match="Не удалось запустить"):
+    with pytest.raises(TsharkReadError, match="Could not start"):
         read_packet_details(Path("capture.pcapng"), Path("tshark"), 7, run=failing_run)
 
 
-def test_read_packet_details_reports_timeout_in_russian() -> None:
+def test_read_packet_details_reports_timeout() -> None:
     def timing_out_run(
         *_args: object, **_kwargs: object
     ) -> subprocess.CompletedProcess[str]:
         raise subprocess.TimeoutExpired(["tshark"], timeout=5)
 
-    with pytest.raises(TsharkReadError, match="Время ожидания"):
+    with pytest.raises(TsharkReadError, match="Timed out"):
         read_packet_details(
             Path("capture.pcapng"), Path("tshark"), 7, run=timing_out_run
         )
 
 
 def test_read_packet_details_reports_stderr_for_nonzero_exit() -> None:
-    result = completed("", stderr="Файл повреждён\n", returncode=2)
+    result = completed("", stderr="File is corrupted\n", returncode=2)
 
-    with pytest.raises(TsharkReadError, match="Файл повреждён"):
+    with pytest.raises(TsharkReadError, match="File is corrupted"):
         read_packet_details(
             Path("capture.pcapng"), Path("tshark"), 7, run=lambda *_a, **_k: result
         )
 
 
 def test_read_packet_details_reports_empty_stdout() -> None:
-    with pytest.raises(TsharkReadError, match="пустой вывод"):
+    with pytest.raises(TsharkReadError, match="empty output"):
         read_packet_details(
             Path("capture.pcapng"),
             Path("tshark"),
@@ -109,7 +109,7 @@ def test_read_packet_details_reports_missing_hex_dump() -> None:
     assert read_packet_details(
         Path("capture.pcapng"), Path("tshark"), 7, run=lambda *_a, **_k: result
     ) == PacketDetails(
-        "Frame 7: 72 bytes\n\nEthernet II", "Hex/ASCII-дамп отсутствует."
+        "Frame 7: 72 bytes\n\nEthernet II", "Hex/ASCII dump is not available."
     )
 
 
@@ -178,14 +178,14 @@ class FakeStderr:
 class LimitProcess(FakeProcess):
     def wait(self) -> int:
         if not self.terminate_called:
-            raise AssertionError("Процесс должен быть остановлен до ожидания")
+            raise AssertionError("Process must be terminated before waiting")
         return super().wait()
 
 
 class StderrFirstProcess(FakeProcess):
     def wait(self) -> int:
         if not self.stderr.read_started.wait(timeout=0.1):
-            raise AssertionError("stderr должен читаться до ожидания процесса")
+            raise AssertionError("stderr must be read before waiting for the process")
         return super().wait()
 
 
@@ -360,7 +360,7 @@ def test_read_display_filter_fields_returns_empty_tuple_on_tshark_error() -> Non
     def failing_run(
         *_args: object, **_kwargs: object
     ) -> subprocess.CompletedProcess[str]:
-        return completed("", stderr="ошибка", returncode=2)
+        return completed("", stderr="failed", returncode=2)
 
     assert read_display_filter_fields(Path("tshark"), run=failing_run) == ()
 
@@ -383,7 +383,7 @@ def test_parse_packet_row_reports_malformed_tsv() -> None:
         '"7"\t"0.250000"\t"10.0.0.1"\t"10.0.0.2"\t"DNS"\t"82"\t"Query\t""\t""\t""\t""\n'
     )
 
-    with pytest.raises(TsharkReadError, match="Некорректн"):
+    with pytest.raises(TsharkReadError, match="Invalid"):
         parse_packet_row(row)
 
 
@@ -391,8 +391,8 @@ def test_iter_packet_summaries_stops_after_limit() -> None:
     process = LimitProcess(
         iter(
             [
-                '"1"\t"0.000000"\t"a"\t"b"\t"DNS"\t"72"\t"Первый"\t""\t""\t""\t""\n',
-                '"2"\t"0.100000"\t"c"\t"d"\t"TCP"\t"64"\t"Второй"\t""\t""\t""\t""\n',
+                '"1"\t"0.000000"\t"a"\t"b"\t"DNS"\t"72"\t"First"\t""\t""\t""\t""\n',
+                '"2"\t"0.100000"\t"c"\t"d"\t"TCP"\t"64"\t"Second"\t""\t""\t""\t""\n',
             ]
         )
     )
@@ -406,7 +406,7 @@ def test_iter_packet_summaries_stops_after_limit() -> None:
         )
     )
 
-    assert packets == [PacketSummary(1, "0.000000", "a", "b", "DNS", 72, "Первый")]
+    assert packets == [PacketSummary(1, "0.000000", "a", "b", "DNS", 72, "First")]
     assert process.terminate_called
     assert process.wait_called
 
@@ -432,7 +432,7 @@ def test_iter_packet_summaries_passes_display_filter_to_tshark() -> None:
 
 
 def test_iter_packet_summaries_drains_stderr_before_waiting_for_process() -> None:
-    process = StderrFirstProcess(iter(()), stderr="Предупреждение\n")
+    process = StderrFirstProcess(iter(()), stderr="Warning\n")
 
     packets = list(
         iter_packet_summaries(
@@ -449,7 +449,7 @@ def test_iter_packet_summaries_drains_stderr_before_waiting_for_process() -> Non
 
 def test_iter_packet_summaries_does_not_start_process_for_non_positive_limit() -> None:
     def unexpected_popen(*_args: object, **_kwargs: object) -> FakeProcess:
-        raise AssertionError("Процесс не должен запускаться")
+        raise AssertionError("Process must not be started")
 
     packets = list(
         iter_packet_summaries(
@@ -461,9 +461,9 @@ def test_iter_packet_summaries_does_not_start_process_for_non_positive_limit() -
 
 
 def test_iter_packet_summaries_reports_tshark_stderr_without_traceback() -> None:
-    process = FakeProcess(iter(()), stderr="Файл повреждён\n", returncode=2)
+    process = FakeProcess(iter(()), stderr="File is corrupted\n", returncode=2)
 
-    with pytest.raises(TsharkReadError, match="Файл повреждён") as error:
+    with pytest.raises(TsharkReadError, match="File is corrupted") as error:
         list(
             iter_packet_summaries(
                 Path("capture.pcapng"),
@@ -480,7 +480,7 @@ def test_iter_packet_summaries_reports_malformed_row_after_previous_packets() ->
     process = FakeProcess(
         iter(
             [
-                '"1"\t"0.000000"\t"a"\t"b"\t"DNS"\t"72"\t"Первый"\t""\t""\t""\t""\n',
+                '"1"\t"0.000000"\t"a"\t"b"\t"DNS"\t"72"\t"First"\t""\t""\t""\t""\n',
                 '"2"\t"0.100000"\t"c"\t"d"\t"TCP"\t"64"\n',
             ]
         )
@@ -493,7 +493,7 @@ def test_iter_packet_summaries_reports_malformed_row_after_previous_packets() ->
     )
 
     assert next(packets).number == 1
-    with pytest.raises(TsharkReadError, match="одиннадцать"):
+    with pytest.raises(TsharkReadError, match="eleven"):
         next(packets)
 
     assert process.terminate_called
@@ -502,9 +502,9 @@ def test_iter_packet_summaries_reports_malformed_row_after_previous_packets() ->
 
 def test_iter_packet_summaries_reports_startup_error() -> None:
     def failing_popen(*_args: object, **_kwargs: object) -> FakeProcess:
-        raise OSError("Нет такого файла")
+        raise OSError("No such file")
 
-    with pytest.raises(TsharkReadError, match="Не удалось запустить"):
+    with pytest.raises(TsharkReadError, match="Could not start"):
         list(
             iter_packet_summaries(
                 Path("capture.pcapng"), Path("tshark"), limit=1, popen=failing_popen

@@ -18,7 +18,7 @@ from wispwire.tui import WispWireApp
 def packet(
     number: int,
     protocol: str = "DNS",
-    info: str = "Запрос",
+    info: str = "Request",
     url: str = "",
 ) -> PacketSummary:
     return PacketSummary(
@@ -48,7 +48,7 @@ def test_packet_row_values_uses_literal_text_in_narrow_mode() -> None:
         "7",
         "10.0.0.1",
         "[bold]UDP[/bold]",
-        "Запрос",
+        "Request",
     ]
 
 
@@ -77,7 +77,7 @@ def test_packet_row_values_shows_url_domain_in_wide_mode() -> None:
         "api.example.com",
         "DNS",
         "72",
-        "Запрос",
+        "Request",
     ]
 
 
@@ -139,7 +139,7 @@ async def test_rebuild_packet_table_uses_fixed_narrow_column_widths() -> None:
 
 def test_render_packet_details_uses_literal_text() -> None:
     details = render_packet_details(
-        packet(7, info="[bold]Запрос[/bold]"),
+        packet(7, info="[bold]Request[/bold]"),
         PacketDetails("[red]Frame 7[/red]", "0000  aa"),
     )
 
@@ -150,8 +150,8 @@ def test_render_packet_details_uses_literal_text() -> None:
         "Destination: 10.0.0.2\n"
         "Protocol: DNS\n"
         "Length: 72\n"
-        "Info: [bold]Запрос[/bold]\n\n"
-        "Дерево протоколов:\n"
+        "Info: [bold]Request[/bold]\n\n"
+        "Protocol tree:\n"
         "[red]Frame 7[/red]\n\n"
         "Hex/ASCII:\n"
         "0000  aa"
@@ -182,7 +182,7 @@ async def test_app_shows_tree_and_hex_for_selected_packet() -> None:
     async with app.run_test():
         text = details_text(app)
 
-        assert "Дерево протоколов:\nFrame 7" in text
+        assert "Protocol tree:\nFrame 7" in text
         assert "Hex/ASCII:\n0000  aa" in text
 
 
@@ -223,25 +223,25 @@ async def test_app_reads_initial_packet_no_more_than_once() -> None:
 @pytest.mark.asyncio
 async def test_app_keeps_running_and_shows_local_details_error() -> None:
     def read_details(_: PacketSummary) -> PacketDetails:
-        raise TsharkReadError("Повреждённый захват")
+        raise TsharkReadError("Corrupted capture")
 
     app = WispWireApp((packet(1),), "sample.pcapng", read_details)
 
     async with app.run_test():
         assert app.is_running
-        assert "Не удалось загрузить детали: Повреждённый захват" in details_text(app)
+        assert "Could not load details: Corrupted capture" in details_text(app)
 
 
 @pytest.mark.asyncio
 async def test_app_keeps_running_and_shows_local_os_error() -> None:
     def read_details(_: PacketSummary) -> PacketDetails:
-        raise OSError("Нет доступа к TShark")
+        raise OSError("No access to TShark")
 
     app = WispWireApp((packet(1),), "sample.pcapng", read_details)
 
     async with app.run_test():
         assert app.is_running
-        assert "Не удалось загрузить детали: Нет доступа к TShark" in details_text(app)
+        assert "Could not load details: No access to TShark" in details_text(app)
 
 
 @pytest.mark.asyncio
@@ -260,7 +260,9 @@ async def test_app_keeps_running_when_details_reader_times_out() -> None:
 
     async with app.run_test():
         assert app.is_running
-        assert "Не удалось загрузить детали: Время ожидания" in details_text(app)
+        assert "Could not load details: Timed out waiting for TShark." in details_text(
+            app
+        )
 
 
 @pytest.mark.asyncio
@@ -278,13 +280,13 @@ async def test_app_moves_selection_with_down_key() -> None:
 @pytest.mark.asyncio
 async def test_app_shows_rich_markup_in_packet_info_literally() -> None:
     app = WispWireApp(
-        (packet(number=1, info="[bold]Текст[/bold]"),), "sample.pcapng", read_details
+        (packet(number=1, info="[bold]Text[/bold]"),), "sample.pcapng", read_details
     )
 
     async with app.run_test():
         table = app.query_one("#packets", DataTable)
 
-        assert str(table.get_row_at(0)[-1]) == "[bold]Текст[/bold]"
+        assert str(table.get_row_at(0)[-1]) == "[bold]Text[/bold]"
 
 
 @pytest.mark.asyncio
@@ -359,7 +361,7 @@ async def test_app_keeps_previous_rows_when_display_filter_has_error() -> None:
     packets = (packet(1, info="telegram"),)
 
     def query_packets(_query: PacketQuery) -> PacketQueryResult:
-        return PacketQueryResult((), "Синтаксическая ошибка display filter")
+        return PacketQueryResult((), "Display filter syntax error")
 
     app = WispWireApp(
         packets, "sample.pcapng", read_details, query_packets=query_packets
@@ -372,7 +374,7 @@ async def test_app_keeps_previous_rows_when_display_filter_has_error() -> None:
 
         table = app.query_one("#packets", DataTable)
         assert str(table.get_row_at(0)[-1]) == "telegram"
-        assert "Синтаксическая ошибка display filter" in str(
+        assert "Display filter syntax error" in str(
             app.query_one("#filter-status", Static).renderable
         )
 
@@ -398,7 +400,7 @@ async def test_app_shows_human_display_filter_error() -> None:
         await pilot.pause(0.25)
 
         status = str(app.query_one("#filter-status", Static).renderable)
-        assert "Невалидный display filter" in status
+        assert "Invalid display filter" in status
         assert "`tcp`" in status
         assert "tshark:" not in status
 
@@ -466,13 +468,13 @@ async def test_resize_keeps_selected_packet_details_and_rows() -> None:
             "1",
             "10.0.0.1",
             "DNS",
-            "Запрос",
+            "Request",
         ]
         assert [str(value) for value in table.get_row_at(1)] == [
             "2",
             "10.0.0.1",
             "DNS",
-            "Запрос",
+            "Request",
         ]
         assert "No.: 2" in details_text(app)
 
@@ -516,7 +518,7 @@ async def test_layout_uses_expected_columns_at_width_boundaries(
 async def test_app_focuses_details_and_scrolls_to_the_end(
     size: tuple[int, int],
 ) -> None:
-    long_tree = "\n".join(f"Протокол {number}" for number in range(80))
+    long_tree = "\n".join(f"Protocol {number}" for number in range(80))
     long_hex = "\n".join(f"{number:04x}  aa bb cc dd" for number in range(80))
     app = WispWireApp(
         (packet(1),),

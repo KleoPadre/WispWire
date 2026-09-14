@@ -52,7 +52,7 @@ def test_list_interfaces_returns_empty_tuple_when_dumpcap_cannot_start() -> None
         assert text is True
         assert check is False
         assert timeout == 5
-        raise OSError("нет доступа")
+        raise OSError("no access")
 
     assert list_interfaces(run=failing_run) == ()
 
@@ -76,7 +76,7 @@ def failing_interfaces_run(
 def test_doctor_warns_when_dumpcap_is_missing() -> None:
     def fake_inspect(name: str) -> ToolStatus:
         if name == "dumpcap":
-            return ToolStatus(name, None, None, "утилита не найдена в PATH")
+            return ToolStatus(name, None, None, "tool not found in PATH")
         return ToolStatus(name, Path(f"/opt/bin/{name}"), "4.4.0", None)
 
     report = collect_doctor_report(
@@ -84,7 +84,7 @@ def test_doctor_warns_when_dumpcap_is_missing() -> None:
         interfaces=lambda: (),
     )
 
-    assert report.capture_warning == "live-захват недоступен: установите dumpcap"
+    assert report.capture_warning == "live capture is unavailable: install dumpcap"
 
 
 def test_doctor_collects_tools_and_interfaces_when_dumpcap_is_available() -> None:
@@ -109,7 +109,7 @@ def test_doctor_collects_tools_and_interfaces_when_dumpcap_is_available() -> Non
 
 
 def test_doctor_includes_unavailable_fts5_status() -> None:
-    status = SqliteFeatureStatus(False, "SQLite FTS5 trigram недоступен")
+    status = SqliteFeatureStatus(False, "SQLite FTS5 trigram is unavailable")
 
     report = collect_doctor_report(sqlite_check=lambda: status)
 
@@ -121,9 +121,7 @@ def test_doctor_does_not_list_interfaces_without_working_dumpcap() -> None:
 
     def fake_inspect(name: str) -> ToolStatus:
         if name == "dumpcap":
-            return ToolStatus(
-                name, Path("/opt/bin/dumpcap"), None, "не удалось запустить"
-            )
+            return ToolStatus(name, Path("/opt/bin/dumpcap"), None, "could not start")
         return ToolStatus(name, Path(f"/opt/bin/{name}"), "4.4.0", None)
 
     def interfaces() -> tuple[str, ...]:
@@ -135,13 +133,13 @@ def test_doctor_does_not_list_interfaces_without_working_dumpcap() -> None:
 
     assert called is False
     assert report.interfaces == ()
-    assert report.capture_warning == "live-захват недоступен: установите dumpcap"
+    assert report.capture_warning == "live capture is unavailable: install dumpcap"
 
 
 def test_doctor_lists_interfaces_but_warns_when_tshark_is_unavailable() -> None:
     def fake_inspect(name: str) -> ToolStatus:
         if name == "tshark":
-            return ToolStatus(name, None, None, "утилита не найдена в PATH")
+            return ToolStatus(name, None, None, "tool not found in PATH")
         return ToolStatus(name, Path(f"/opt/bin/{name}"), "4.4.0", None)
 
     report = collect_doctor_report(
@@ -150,7 +148,7 @@ def test_doctor_lists_interfaces_but_warns_when_tshark_is_unavailable() -> None:
     )
 
     assert report.interfaces == ("en0",)
-    assert report.capture_warning == "live-захват недоступен: установите tshark"
+    assert report.capture_warning == "live capture is unavailable: install tshark"
 
 
 def test_doctor_warns_when_dumpcap_returns_no_interfaces() -> None:
@@ -166,7 +164,7 @@ def test_doctor_warns_when_dumpcap_returns_no_interfaces() -> None:
     assert report.interfaces == ()
     assert (
         report.capture_warning
-        == "live-захват недоступен: dumpcap не вернул доступных интерфейсов"
+        == "live capture is unavailable: dumpcap returned no available interfaces"
     )
 
 
@@ -181,6 +179,6 @@ def test_doctor_suggests_chmodbpf_when_macos_dumpcap_returns_no_interfaces() -> 
     )
 
     assert report.capture_warning == (
-        "live-захват недоступен: dumpcap не вернул доступных интерфейсов. "
-        "На macOS установите права захвата: brew install --cask wireshark-chmodbpf"
+        "live capture is unavailable: dumpcap returned no available interfaces. "
+        "On macOS, install capture permissions: brew install --cask wireshark-chmodbpf"
     )

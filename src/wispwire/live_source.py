@@ -1,4 +1,4 @@
-"""Источник пакетов подтверждённых сегментов live-захвата."""
+"""Packet source for confirmed live-capture segments."""
 
 import sqlite3
 import threading
@@ -15,7 +15,7 @@ from wispwire.tshark import TsharkReadError, iter_packet_summaries, read_packet_
 
 @dataclass(frozen=True)
 class LivePacket:
-    """Пакет с глобальным номером и исходным кадром сегмента."""
+    """Packet with a global number and original segment frame."""
 
     summary: PacketSummary
     segment_path: Path
@@ -23,7 +23,7 @@ class LivePacket:
 
 
 class LivePacketSource:
-    """Индексирует только уже подтверждённые CaptureSession сегменты."""
+    """Indexes only confirmed CaptureSession segments."""
 
     def __init__(
         self,
@@ -35,7 +35,7 @@ class LivePacketSource:
         read_details: Callable[..., PacketDetails] = read_packet_details,
     ) -> None:
         if limit < 1:
-            raise ValueError("Размер страницы должен быть положительным")
+            raise ValueError("Page size must be positive")
         self._tshark_path = tshark_path
         self._storage = storage or SessionStorage()
         self._limit = limit
@@ -50,18 +50,18 @@ class LivePacketSource:
 
     @property
     def session_path(self) -> Path:
-        """Возвращает путь собственной временной сессии."""
+        """Return the owned temporary session path."""
         with self._lock:
             return self._session.path
 
     @property
     def packet_count(self) -> int:
-        """Возвращает количество пакетов с глобальными номерами."""
+        """Return the number of globally numbered packets."""
         with self._lock:
             return len(self._packets)
 
     def ingest(self, segments: tuple[Path, ...]) -> tuple[PacketSummary, ...]:
-        """Добавляет ранее не обработанные подтверждённые сегменты."""
+        """Add confirmed segments that have not been processed yet."""
         with self._lock:
             return self._ingest(segments)
 
@@ -89,13 +89,13 @@ class LivePacketSource:
         return tuple(added)
 
     def query(self, query: PacketQuery) -> PacketQueryResult:
-        """Возвращает пересечение display filter и поиска по полю Info."""
+        """Return the intersection of display filter and Info search."""
         with self._lock:
             return self._query(query)
 
     def _query(self, query: PacketQuery) -> PacketQueryResult:
         if query.limit < 1:
-            raise ValueError("Размер страницы должен быть положительным")
+            raise ValueError("Page size must be positive")
 
         display_filter = query.display_filter
         has_display_filter = bool(display_filter.strip())
@@ -117,7 +117,7 @@ class LivePacketSource:
         )
 
     def read_details(self, global_number: int) -> PacketDetails:
-        """Читает детали по локальному номеру кадра в исходном сегменте."""
+        """Read details by local frame number in the source segment."""
         with self._lock:
             packet = self._packets[global_number]
             return self._read_details(
@@ -125,7 +125,7 @@ class LivePacketSource:
             )
 
     def reset(self) -> None:
-        """Очищает состояние после успешного перезапуска CaptureSession."""
+        """Clear state after a successful CaptureSession restart."""
         with self._lock:
             self._reset()
 
@@ -134,14 +134,14 @@ class LivePacketSource:
             return
         self._index.close()
         if not self._storage.close_session(self._session):
-            raise SessionSafetyError("не удалось закрыть сессию live-источника")
+            raise SessionSafetyError("could not close live-source session")
         self._session, self._index = self._create_index()
         self._packets.clear()
         self._seen_segments.clear()
         self._next_number = 1
 
     def close(self) -> None:
-        """Закрывает индекс до закрытия только собственной временной сессии."""
+        """Close the index before closing only the owned temporary session."""
         with self._lock:
             self._close()
 
@@ -150,7 +150,7 @@ class LivePacketSource:
             return
         self._index.close()
         if not self._storage.close_session(self._session):
-            raise SessionSafetyError("не удалось закрыть сессию live-источника")
+            raise SessionSafetyError("could not close live-source session")
         self._closed = True
 
     def _create_index(self) -> tuple[Session, PacketIndex]:
@@ -174,7 +174,7 @@ class LivePacketSource:
                 pass
             if not self._storage.close_session(session):
                 raise SessionSafetyError(
-                    "не удалось закрыть сессию live-источника"
+                    "could not close live-source session"
                 ) from error
             raise
         return session, index

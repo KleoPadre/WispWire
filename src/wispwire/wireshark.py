@@ -1,4 +1,4 @@
-"""Безопасное обнаружение утилит Wireshark."""
+"""Safe Wireshark tool discovery."""
 
 import re
 import shutil
@@ -12,7 +12,7 @@ VERSION_PATTERN = re.compile(r"([0-9]+(?:\.[0-9]+)+)")
 
 @dataclass(frozen=True)
 class ToolStatus:
-    """Результат проверки доступности внешней утилиты."""
+    """External tool availability check result."""
 
     name: str
     path: Path | None
@@ -25,10 +25,10 @@ def inspect_tool(
     which: Callable[[str], str | None] = shutil.which,
     run: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
 ) -> ToolStatus:
-    """Проверить доступность утилиты и определить её версию без исключений."""
+    """Check tool availability and detect its version without raising exceptions."""
     tool_path = which(name)
     if tool_path is None:
-        return ToolStatus(name, None, None, "утилита не найдена в PATH")
+        return ToolStatus(name, None, None, "tool not found in PATH")
 
     path = Path(tool_path)
     try:
@@ -40,21 +40,21 @@ def inspect_tool(
             timeout=5,
         )
     except subprocess.TimeoutExpired:
-        return ToolStatus(name, path, None, "превышено время ожидания ответа утилиты")
+        return ToolStatus(name, path, None, "tool response timed out")
     except OSError as error:
-        return ToolStatus(name, path, None, f"не удалось запустить утилиту: {error}")
+        return ToolStatus(name, path, None, f"could not start tool: {error}")
 
     if result.returncode != 0:
         return ToolStatus(
             name,
             path,
             None,
-            f"утилита завершилась с кодом {result.returncode}",
+            f"tool exited with code {result.returncode}",
         )
 
     first_line = result.stdout.splitlines()[0] if result.stdout else ""
     version_match = VERSION_PATTERN.search(first_line)
     if version_match is None:
-        return ToolStatus(name, path, None, "не удалось распознать версию утилиты")
+        return ToolStatus(name, path, None, "could not detect tool version")
 
     return ToolStatus(name, path, version_match.group(1), None)
