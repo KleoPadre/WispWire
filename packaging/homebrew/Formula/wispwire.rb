@@ -6,8 +6,8 @@ class Wispwire < Formula
 
   desc "Terminal utility for network-analysis diagnostics"
   homepage "https://github.com/KleoPadre/WispWire"
-  url "https://github.com/KleoPadre/WispWire/releases/download/v0.1.4/wispwire-0.1.4.tar.gz"
-  sha256 "a00389bc9225affb676deb5fe2ac9776cb3a5fb3a420c6075e1b824f034403ba"
+  url "https://github.com/KleoPadre/WispWire/releases/download/v0.1.5/wispwire-0.1.5.tar.gz"
+  sha256 "e974e1117ff9c2be473b7a45a33aa98a48d14560002486b8611613f04318b920"
   license "MIT"
 
   depends_on "python@3.13"
