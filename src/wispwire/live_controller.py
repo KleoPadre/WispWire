@@ -1,4 +1,4 @@
-"""Потоковый контроллер live-захвата без блокировок в интерфейсе."""
+"""Streaming live-capture controller with no UI-thread blocking."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from wispwire.tshark import TsharkReadError
 
 @dataclass(frozen=True)
 class LivePacketsAdded:
-    """Пакеты, добавленные за одну итерацию контроллера."""
+    """Packets added during one controller iteration."""
 
     packets: tuple[PacketSummary, ...]
     generation: int = 0
@@ -26,7 +26,7 @@ class LivePacketsAdded:
 
 @dataclass(frozen=True)
 class LiveStateChanged:
-    """Текущее состояние захвата и подтверждённые объёмы."""
+    """Current capture state and confirmed totals."""
 
     state: CaptureState
     packets: int
@@ -36,7 +36,7 @@ class LiveStateChanged:
 
 @dataclass(frozen=True)
 class LiveSaved:
-    """Снимок захвата сохранён в указанный файл."""
+    """Capture snapshot saved to the requested file."""
 
     path: Path
     open_in_file_tui: bool
@@ -44,7 +44,7 @@ class LiveSaved:
 
 @dataclass(frozen=True)
 class LiveFailure:
-    """Операция захвата завершилась ожидаемой ошибкой."""
+    """Capture operation ended with an expected error."""
 
     message: str
     generation: int = 0
@@ -55,7 +55,7 @@ LiveCommand: TypeAlias = Literal["stop_and_save", "continue", "restart", "save",
 
 
 class LiveCaptureController:
-    """Единственный поток-владелец CaptureSession и LivePacketSource."""
+    """Single owner thread for CaptureSession and LivePacketSource."""
 
     def __init__(
         self,
@@ -76,18 +76,18 @@ class LiveCaptureController:
         self._terminal_error: BaseException | None = None
 
     def start(self) -> None:
-        """Запускает неблокирующий поток управления захватом."""
+        """Start the non-blocking capture-control thread."""
         if self._thread is not None:
-            raise RuntimeError("контроллер live-захвата уже запущен")
+            raise RuntimeError("live-capture controller is already running")
         self._thread = threading.Thread(target=self._run, name="wispwire-live-capture")
         self._thread.start()
 
     def submit(self, command: LiveCommand) -> None:
-        """Помещает команду в очередь, не ожидая поток захвата."""
+        """Put a command into the queue without waiting for the capture thread."""
         self._commands.put(command)
 
     def drain_events(self) -> tuple[LiveEvent, ...]:
-        """Неблокирующе возвращает все уже опубликованные события."""
+        """Return all already published events without blocking."""
         events: list[LiveEvent] = []
         while True:
             try:
@@ -96,12 +96,12 @@ class LiveCaptureController:
                 return tuple(events)
 
     def join(self) -> None:
-        """Ожидает завершения потока контроллера."""
+        """Wait for the controller thread to finish."""
         if self._thread is not None:
             self._thread.join()
         if self._terminal_error is not None:
             raise CaptureError(
-                f"не удалось безопасно закрыть live-захват: {self._terminal_error}"
+                f"could not safely close live capture: {self._terminal_error}"
             ) from self._terminal_error
 
     def _run(self) -> None:
@@ -147,7 +147,7 @@ class LiveCaptureController:
     def _process_command(self, command: LiveCommand) -> None:
         if command == "continue":
             if self._capture.state is CaptureState.LIMIT_REACHED:
-                raise CaptureError("нельзя продолжить захват: достигнут лимит размера")
+                raise CaptureError("cannot continue capture: size limit reached")
             self._capture.continue_capture()
         elif command == "restart":
             try:
@@ -166,8 +166,8 @@ class LiveCaptureController:
                         self._capture.stop()
                 except (CaptureError, OSError) as stop_error:
                     failure = CaptureError(
-                        "не удалось сбросить индекс live-захвата; "
-                        f"дополнительно не удалось остановить новый захват: {stop_error}"
+                        "could not reset the live-capture index; "
+                        f"additionally could not stop the new capture: {stop_error}"
                     )
                 self._generation += 1
                 self._capture.state = CaptureState.FAILED
@@ -216,5 +216,5 @@ class LiveCaptureController:
 
 
 def _default_destination() -> Path:
-    """Возвращает путь, который пользователь выбирает до отправки команды."""
-    raise CaptureError("не задан путь для сохранения live-захвата")
+    """Return the path selected before command submission."""
+    raise CaptureError("no path was provided for saving the live capture")

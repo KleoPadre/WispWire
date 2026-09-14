@@ -21,7 +21,7 @@ from wispwire.packets import PacketDetails, PacketSummary
 LiveCommand = Literal["stop_and_save", "continue", "restart", "save", "quit"]
 
 
-def packet(number: int, info: str = "Запрос") -> PacketSummary:
+def packet(number: int, info: str = "Request") -> PacketSummary:
     return PacketSummary(
         number=number,
         relative_time=f"{number - 1}.000000",
@@ -118,7 +118,7 @@ async def test_live_app_shows_recent_packet_window_instead_of_all_rows() -> None
 
         assert table.row_count == 2000
         assert next(str(value) for value in table.get_row_at(0)) == "102"
-        assert "показаны последние 2000 из 2101" in status_text(app, "#filter-status")
+        assert "showing the latest 2000 of 2101" in status_text(app, "#filter-status")
 
 
 @pytest.mark.asyncio
@@ -203,7 +203,7 @@ async def test_live_display_filter_shows_tshark_field_hint() -> None:
         await pilot.press("f", "t", "c")
 
         status = status_text(app, "#filter-status")
-        assert "Подсказка:" in status
+        assert "Hint:" in status
         assert "tcp.port" in status
 
 
@@ -340,8 +340,8 @@ async def test_live_app_has_interface_selector_and_no_info_search() -> None:
 
 @pytest.mark.asyncio
 async def test_live_app_switches_interface_with_fresh_runtime() -> None:
-    first = FakeController(events=(LivePacketsAdded((packet(1, "старый"),)),))
-    second = FakeController(events=(LivePacketsAdded((packet(1, "новый"),)),))
+    first = FakeController(events=(LivePacketsAdded((packet(1, "old"),)),))
+    second = FakeController(events=(LivePacketsAdded((packet(1, "new"),)),))
     created: list[str] = []
 
     def runtime_factory(interface: str) -> LiveCaptureRuntime:
@@ -371,7 +371,7 @@ async def test_live_app_switches_interface_with_fresh_runtime() -> None:
         assert second.started
         assert app.query_one("#display-filter", Input).value == ""
         assert table.row_count == 1
-        assert str(table.get_row_at(0)[-1]) == "новый"
+        assert str(table.get_row_at(0)[-1]) == "new"
 
 
 @pytest.mark.asyncio
@@ -435,7 +435,7 @@ async def test_live_display_filter_error_is_human_readable() -> None:
         await pilot.pause(0.25)
 
         status = status_text(app, "#filter-status")
-        assert "Невалидный display filter" in status
+        assert "Invalid display filter" in status
         assert "`tcp`" in status
         assert "tshark:" not in status
 
@@ -445,7 +445,7 @@ async def test_restart_clears_packets_from_previous_capture() -> None:
     controller = FakeController(
         events=(
             LiveStateChanged(CaptureState.STOPPED, 1, 72),
-            LivePacketsAdded((packet(1, info="старый"),)),
+            LivePacketsAdded((packet(1, info="old"),)),
         )
     )
     app = LiveCaptureApp("en0", controller, query_packets, read_details)
@@ -455,13 +455,13 @@ async def test_restart_clears_packets_from_previous_capture() -> None:
         await pilot.press("r")
         controller.publish(
             LiveStateChanged(CaptureState.RUNNING, 0, 0, generation=1),
-            LivePacketsAdded((packet(1, info="новый"),), generation=1),
+            LivePacketsAdded((packet(1, info="new"),), generation=1),
         )
         await pilot.pause(0.11)
 
         table = app.query_one("#packets", DataTable)
         assert table.row_count == 1
-        assert str(table.get_row_at(0)[-1]) == "новый"
+        assert str(table.get_row_at(0)[-1]) == "new"
 
 
 @pytest.mark.asyncio
@@ -473,7 +473,7 @@ async def test_restart_ignores_controller_packets_queued_before_acknowledgement(
 
     async with app.run_test() as pilot:
         await pilot.pause(0.12)
-        controller.publish(LivePacketsAdded((packet(1, info="старый"),)))
+        controller.publish(LivePacketsAdded((packet(1, info="old"),)))
         await pilot.press("r")
         await pilot.pause(0.11)
 
@@ -481,13 +481,13 @@ async def test_restart_ignores_controller_packets_queued_before_acknowledgement(
 
         controller.publish(
             LiveStateChanged(CaptureState.RUNNING, 0, 0, generation=1),
-            LivePacketsAdded((packet(1, info="новый"),), generation=1),
+            LivePacketsAdded((packet(1, info="new"),), generation=1),
         )
         await pilot.pause(0.11)
 
         table = app.query_one("#packets", DataTable)
         assert table.row_count == 1
-        assert str(table.get_row_at(0)[-1]) == "новый"
+        assert str(table.get_row_at(0)[-1]) == "new"
 
 
 @pytest.mark.asyncio
@@ -502,15 +502,15 @@ async def test_restart_ignores_stale_state_followed_by_stale_packet() -> None:
         await pilot.press("r")
         controller.publish(
             LiveStateChanged(CaptureState.STOPPED, 1, 72, generation=0),
-            LivePacketsAdded((packet(1, info="старый"),), generation=0),
+            LivePacketsAdded((packet(1, info="old"),), generation=0),
             LiveStateChanged(CaptureState.RUNNING, 0, 0, generation=1),
-            LivePacketsAdded((packet(1, info="новый"),), generation=1),
+            LivePacketsAdded((packet(1, info="new"),), generation=1),
         )
         await pilot.pause(0.11)
 
         table = app.query_one("#packets", DataTable)
         assert table.row_count == 1
-        assert str(table.get_row_at(0)[-1]) == "новый"
+        assert str(table.get_row_at(0)[-1]) == "new"
 
 
 @pytest.mark.asyncio
@@ -526,13 +526,13 @@ async def test_failed_restart_acknowledges_generation_and_updates_failed_state()
         await pilot.pause(0.12)
         await pilot.press("r")
         controller.publish(
-            LiveFailure("не удалось перезапустить захват", generation=1),
+            LiveFailure("could not restart capture", generation=1),
             LiveStateChanged(CaptureState.FAILED, 1, 72, generation=1),
         )
         await pilot.pause(0.11)
 
-        assert status_text(app) == "не удалось перезапустить захват"
-        assert "ошибка" in status_text(app, "#capture-status")
+        assert status_text(app) == "could not restart capture"
+        assert "failed" in status_text(app, "#capture-status")
 
         await pilot.press("c")
         assert controller.commands == ["restart"]
@@ -550,11 +550,11 @@ async def test_successful_restart_discards_failure_from_old_generation() -> None
         await pilot.press("r")
         controller.publish(
             LiveStateChanged(CaptureState.RUNNING, 0, 0, generation=1),
-            LiveFailure("устаревшая ошибка", generation=0),
+            LiveFailure("stale failure", generation=0),
         )
         await pilot.pause(0.11)
 
-        assert status_text(app) != "устаревшая ошибка"
+        assert status_text(app) != "stale failure"
 
 
 @pytest.mark.asyncio
@@ -566,7 +566,7 @@ async def test_state_action_is_blocked_until_controller_reports_state() -> None:
         await pilot.press("c")
 
         assert controller.commands == []
-        assert status_text(app) == "Состояние захвата ещё не получено."
+        assert status_text(app) == "Capture state has not been received yet."
 
 
 @pytest.mark.asyncio
@@ -580,7 +580,7 @@ async def test_live_app_starts_controller_and_shows_state() -> None:
         await pilot.pause(0.12)
 
         assert controller.started
-        assert "выполняется" in status_text(app, "#capture-status")
+        assert "running" in status_text(app, "#capture-status")
         assert "7" in status_text(app, "#capture-status")
         assert "4096" in status_text(app, "#capture-status")
 
@@ -611,7 +611,7 @@ async def test_invalid_stop_does_not_submit_and_shows_russian_status() -> None:
         await pilot.press("s")
 
         assert controller.commands == []
-        assert status_text(app) == "Остановить можно только запущенный захват."
+        assert status_text(app) == "Only a running capture can be stopped."
 
 
 @pytest.mark.asyncio
@@ -636,7 +636,7 @@ async def test_c_is_available_only_while_stopped(
 
         assert controller.commands == expected_commands
         if not expected_commands:
-            assert "остановлен" in status_text(app).lower()
+            assert "stopped" in status_text(app).lower()
 
 
 @pytest.mark.asyncio
@@ -661,7 +661,7 @@ async def test_r_is_available_in_restartable_states(
 
         assert controller.commands == expected_commands
         if not expected_commands:
-            assert "перезапуск" in status_text(app).lower()
+            assert "restart" in status_text(app).lower()
 
 
 @pytest.mark.asyncio
@@ -686,7 +686,7 @@ async def test_w_submits_snapshot_only_in_savable_states(
 
         assert controller.commands == expected_commands
         if not expected_commands:
-            assert "сохран" in status_text(app).lower()
+            assert "sav" in status_text(app).lower()
 
 
 @pytest.mark.asyncio
@@ -731,7 +731,7 @@ async def test_failure_keeps_packets_and_shows_message() -> None:
     controller = FakeController(
         events=(
             LivePacketsAdded((packet(1),)),
-            LiveFailure("dumpcap завершился с ошибкой"),
+            LiveFailure("dumpcap exited with an error"),
         )
     )
     app = LiveCaptureApp("en0", controller, query_packets, read_details)
@@ -740,7 +740,7 @@ async def test_failure_keeps_packets_and_shows_message() -> None:
         await pilot.pause(0.12)
 
         assert app.query_one("#packets", DataTable).row_count == 1
-        assert status_text(app) == "dumpcap завершился с ошибкой"
+        assert status_text(app) == "dumpcap exited with an error"
 
 
 @pytest.mark.asyncio
@@ -762,7 +762,7 @@ async def test_display_filter_error_keeps_previous_rows() -> None:
     controller = FakeController(events=(LivePacketsAdded((packet(1),)),))
 
     def failing_query(_query: PacketQuery) -> PacketQueryResult:
-        return PacketQueryResult((), "Синтаксическая ошибка display filter")
+        return PacketQueryResult((), "Display filter syntax error")
 
     app = LiveCaptureApp("en0", controller, failing_query, read_details)
 
@@ -776,7 +776,7 @@ async def test_display_filter_error_keeps_previous_rows() -> None:
         assert table.row_count == 1
         assert next(str(value) for value in table.get_row_at(0)) == "1"
         assert status_text(app, "#filter-status") == (
-            "Синтаксическая ошибка display filter"
+            "Invalid display filter: Display filter syntax error"
         )
 
 
@@ -868,7 +868,7 @@ async def test_live_layout_uses_shared_width_boundaries(
 
 @pytest.mark.asyncio
 async def test_live_layout_warns_below_minimum_and_details_scroll() -> None:
-    long_tree = "\n".join(f"Протокол {number}" for number in range(80))
+    long_tree = "\n".join(f"Protocol {number}" for number in range(80))
     controller = FakeController(events=(LivePacketsAdded((packet(1),)),))
     app = LiveCaptureApp(
         "en0",

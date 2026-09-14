@@ -42,11 +42,11 @@ def test_doctor_prints_error_status_and_capture_warning(monkeypatch) -> None:
     report = DoctorReport(
         python_version="3.11.9",
         wispwire_version="0.1.1",
-        tools=(ToolStatus("tshark", None, None, "утилита не найдена в PATH"),),
+        tools=(ToolStatus("tshark", None, None, "tool not found in PATH"),),
         interfaces=(),
-        capture_warning="live-захват недоступен: установите dumpcap",
+        capture_warning="live capture is unavailable: install dumpcap",
         sqlite_fts5=SqliteFeatureStatus(
-            False, "SQLite FTS5 trigram недоступен: токенизатор не найден"
+            False, "SQLite FTS5 trigram is unavailable: tokenizer not found"
         ),
     )
     monkeypatch.setattr("wispwire.cli.collect_doctor_report", lambda: report)
@@ -54,10 +54,10 @@ def test_doctor_prints_error_status_and_capture_warning(monkeypatch) -> None:
     result = CliRunner().invoke(app, ["doctor"])
 
     assert result.exit_code == 0
-    assert "ОШИБКА" in result.stdout
-    assert "SQLite FTS5 trigram: ОШИБКА" in result.stdout
-    assert "Предупреждение: SQLite FTS5 trigram недоступен" in result.stdout
-    assert "Предупреждение: live-захват недоступен: установите dumpcap" in result.stdout
+    assert "ERROR" in result.stdout
+    assert "SQLite FTS5 trigram: ERROR" in result.stdout
+    assert "Warning: SQLite FTS5 trigram is unavailable" in result.stdout
+    assert "Warning: live capture is unavailable: install dumpcap" in result.stdout
 
 
 def test_interfaces_reports_no_available_interfaces(monkeypatch) -> None:
@@ -66,7 +66,7 @@ def test_interfaces_reports_no_available_interfaces(monkeypatch) -> None:
     result = CliRunner().invoke(app, ["interfaces"])
 
     assert result.exit_code == 0
-    assert "Интерфейсы не найдены" in result.stdout
+    assert "No interfaces found" in result.stdout
 
 
 def test_interfaces_prints_numbered_available_interfaces(monkeypatch) -> None:
@@ -97,10 +97,10 @@ def fake_live_components(
             events.append(f"source:{tshark_path.name}")
 
         def query(self, _query):
-            raise AssertionError("запрос выполняет только live-TUI")
+            raise AssertionError("only the live TUI runs the query")
 
         def read_details(self, _number):
-            raise AssertionError("детали читает только live-TUI")
+            raise AssertionError("only the live TUI reads details")
 
     class FakeLiveCaptureController:
         def __init__(self, capture, source, *, destination_factory) -> None:
@@ -146,11 +146,11 @@ def test_capture_reports_missing_dumpcap_without_creating_session(monkeypatch) -
     constructed: list[str] = []
 
     def unexpected_capture_session(*_args, **_kwargs) -> None:
-        constructed.append("создана")
+        constructed.append("created")
 
     monkeypatch.setattr(
         "wispwire.cli.inspect_tool",
-        lambda name: ToolStatus(name, None, None, "не найден"),
+        lambda name: ToolStatus(name, None, None, "not found"),
     )
     monkeypatch.setattr("wispwire.cli.CaptureSession", unexpected_capture_session)
     monkeypatch.setattr(
@@ -165,7 +165,7 @@ def test_capture_reports_missing_dumpcap_without_creating_session(monkeypatch) -
     result = CliRunner().invoke(app, ["capture", "--iface", "en0"])
 
     assert result.exit_code == 1
-    assert "dumpcap недоступен" in result.output
+    assert "dumpcap is unavailable" in result.output
     assert constructed == []
 
 
@@ -174,11 +174,11 @@ def test_capture_reports_missing_mergecap_without_creating_session(monkeypatch) 
 
     def inspect(name: str) -> ToolStatus:
         path = Path(f"/opt/bin/{name}") if name == "dumpcap" else None
-        error = None if path is not None else "не найден"
+        error = None if path is not None else "not found"
         return ToolStatus(name, path, "4.4.0" if path else None, error)
 
     def unexpected_capture_session(*_args, **_kwargs) -> None:
-        constructed.append("создана")
+        constructed.append("created")
 
     monkeypatch.setattr("wispwire.cli.inspect_tool", inspect)
     monkeypatch.setattr("wispwire.cli.CaptureSession", unexpected_capture_session)
@@ -194,7 +194,7 @@ def test_capture_reports_missing_mergecap_without_creating_session(monkeypatch) 
     result = CliRunner().invoke(app, ["capture", "--iface", "en0"])
 
     assert result.exit_code == 1
-    assert "mergecap недоступен" in result.output
+    assert "mergecap is unavailable" in result.output
     assert constructed == []
 
 
@@ -204,7 +204,7 @@ def test_capture_rejects_unknown_interface_without_creating_session(
     constructed: list[str] = []
 
     def unexpected_capture_session(*_args, **_kwargs) -> None:
-        constructed.append("создана")
+        constructed.append("created")
 
     monkeypatch.setattr("wispwire.cli.inspect_tool", available_capture_tools)
     monkeypatch.setattr("wispwire.cli.list_interfaces", lambda: ("en0",))
@@ -221,7 +221,7 @@ def test_capture_rejects_unknown_interface_without_creating_session(
     result = CliRunner().invoke(app, ["capture", "--iface", "en1"])
 
     assert result.exit_code == 2
-    assert "Интерфейс en1 недоступен" in result.output
+    assert "Interface en1 is unavailable" in result.output
     assert constructed == []
 
 
@@ -230,11 +230,11 @@ def test_capture_reports_missing_tshark_without_creating_session(monkeypatch) ->
 
     def inspect(name: str) -> ToolStatus:
         if name == "tshark":
-            return ToolStatus(name, None, None, "не найден")
+            return ToolStatus(name, None, None, "not found")
         return available_capture_tools(name)
 
     def unexpected_component(*_args, **_kwargs) -> None:
-        constructed.append("создан")
+        constructed.append("created")
 
     monkeypatch.setattr("wispwire.cli.inspect_tool", inspect)
     monkeypatch.setattr("wispwire.cli.list_interfaces", lambda: ("en0",))
@@ -245,7 +245,7 @@ def test_capture_reports_missing_tshark_without_creating_session(monkeypatch) ->
     result = CliRunner().invoke(app, ["capture", "--iface", "en0"])
 
     assert result.exit_code == 1
-    assert "TShark недоступен" in result.output
+    assert "TShark is unavailable" in result.output
     assert constructed == []
 
 
@@ -302,7 +302,7 @@ def test_capture_does_not_open_file_tui_after_quit(monkeypatch) -> None:
 def test_capture_reports_live_error_without_traceback(monkeypatch) -> None:
     events: list[str] = []
     fake_live_components(
-        monkeypatch, events, error=CaptureError("dumpcap потерял интерфейс")
+        monkeypatch, events, error=CaptureError("dumpcap lost the interface")
     )
     monkeypatch.setattr("wispwire.cli.inspect_tool", available_capture_tools)
     monkeypatch.setattr("wispwire.cli.list_interfaces", lambda: ("en0",))
@@ -310,7 +310,7 @@ def test_capture_reports_live_error_without_traceback(monkeypatch) -> None:
     result = CliRunner().invoke(app, ["capture", "--iface", "en0"])
 
     assert result.exit_code == 1
-    assert "dumpcap потерял интерфейс" in result.output
+    assert "dumpcap lost the interface" in result.output
     assert "Traceback" not in result.output
 
 
@@ -319,7 +319,7 @@ def test_capture_reports_controller_close_error_without_traceback(monkeypatch) -
     fake_live_components(
         monkeypatch,
         events,
-        error=CaptureError("не удалось безопасно закрыть live-захват"),
+        error=CaptureError("could not safely close live capture"),
     )
     monkeypatch.setattr("wispwire.cli.inspect_tool", available_capture_tools)
     monkeypatch.setattr("wispwire.cli.list_interfaces", lambda: ("en0",))
@@ -327,7 +327,7 @@ def test_capture_reports_controller_close_error_without_traceback(monkeypatch) -
     result = CliRunner().invoke(app, ["capture", "--iface", "en0"])
 
     assert result.exit_code == 1
-    assert "не удалось безопасно закрыть live-захват" in result.output
+    assert "could not safely close live capture" in result.output
     assert "Traceback" not in result.output
 
 
@@ -623,7 +623,7 @@ def test_open_reports_empty_capture_without_starting_tui(monkeypatch, tmp_path) 
     result = CliRunner().invoke(app, ["open", str(capture_path)])
 
     assert result.exit_code == 0
-    assert "Пакеты не найдены." in result.stdout
+    assert "No packets found." in result.stdout
     assert started == []
 
 
@@ -631,14 +631,14 @@ def test_open_rejects_missing_capture_path() -> None:
     result = CliRunner().invoke(app, ["open", "missing.pcapng"])
 
     assert result.exit_code == 2
-    assert "Файл захвата не найден" in result.stdout
+    assert "Capture file not found" in result.stdout
 
 
 def test_open_rejects_directory_instead_of_capture(tmp_path) -> None:
     result = CliRunner().invoke(app, ["open", str(tmp_path)])
 
     assert result.exit_code == 2
-    assert "Ожидается файл захвата" in result.stdout
+    assert "Expected a capture file" in result.stdout
 
 
 def test_open_reports_missing_tshark(monkeypatch, tmp_path) -> None:
@@ -646,7 +646,7 @@ def test_open_reports_missing_tshark(monkeypatch, tmp_path) -> None:
     capture_path.touch()
     monkeypatch.setattr(
         "wispwire.cli.inspect_tool",
-        lambda _: ToolStatus("tshark", None, None, "утилита не найдена в PATH"),
+        lambda _: ToolStatus("tshark", None, None, "tool not found in PATH"),
     )
 
     result = CliRunner().invoke(app, ["open", str(capture_path)])
@@ -670,7 +670,7 @@ def test_open_reports_tshark_read_error_without_traceback(
             pass
 
         def load(self, _limit: int) -> tuple[PacketSummary, ...]:
-            raise TsharkReadError("Повреждённый захват")
+            raise TsharkReadError("Corrupted capture")
 
         def close(self) -> None:
             pass
@@ -680,7 +680,7 @@ def test_open_reports_tshark_read_error_without_traceback(
     result = CliRunner().invoke(app, ["open", str(capture_path)])
 
     assert result.exit_code == 1
-    assert "Повреждённый захват" in result.stdout
+    assert "Corrupted capture" in result.stdout
     assert "Traceback" not in result.stdout
 
 
@@ -699,7 +699,7 @@ def test_open_reports_tshark_read_error_after_received_packet(
             pass
 
         def load(self, _limit: int) -> tuple[PacketSummary, ...]:
-            raise TsharkReadError("Повреждённый захват")
+            raise TsharkReadError("Corrupted capture")
 
         def close(self) -> None:
             pass
@@ -709,7 +709,7 @@ def test_open_reports_tshark_read_error_after_received_packet(
     result = CliRunner().invoke(app, ["open", str(capture_path)])
 
     assert result.exit_code == 1
-    assert "Не удалось прочитать захват: Повреждённый захват" in result.stdout
+    assert "Could not read capture: Corrupted capture" in result.stdout
 
 
 def test_open_rejects_zero_limit(tmp_path) -> None:

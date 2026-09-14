@@ -10,7 +10,7 @@ from wispwire.packets import PacketDetails, PacketSummary
 
 
 class TsharkReadError(RuntimeError):
-    """Ошибка чтения готового захвата через TShark."""
+    """Error while reading an existing capture through TShark."""
 
 
 def build_details_command(
@@ -35,7 +35,7 @@ def read_packet_details(
     run: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
 ) -> PacketDetails:
     if frame_number < 1:
-        raise TsharkReadError("Номер кадра должен быть не меньше 1.")
+        raise TsharkReadError("Frame number must be at least 1.")
 
     try:
         result = run(
@@ -46,19 +46,19 @@ def read_packet_details(
             timeout=5,
         )
     except subprocess.TimeoutExpired as error:
-        raise TsharkReadError("Время ожидания ответа TShark истекло.") from error
+        raise TsharkReadError("Timed out waiting for TShark.") from error
     except OSError as error:
-        raise TsharkReadError(f"Не удалось запустить TShark: {error}") from error
+        raise TsharkReadError(f"Could not start TShark: {error}") from error
 
     if result.returncode != 0:
         message = (
-            result.stderr.strip() or f"TShark завершился с кодом {result.returncode}."
+            result.stderr.strip() or f"TShark exited with code {result.returncode}."
         )
         raise TsharkReadError(message)
 
     output = result.stdout.strip()
     if not output:
-        raise TsharkReadError("TShark вернул пустой вывод.")
+        raise TsharkReadError("TShark returned empty output.")
 
     lines = output.splitlines()
     hex_index = next(
@@ -70,7 +70,7 @@ def read_packet_details(
         None,
     )
     if hex_index is None:
-        return PacketDetails(output, "Hex/ASCII-дамп отсутствует.")
+        return PacketDetails(output, "Hex/ASCII dump is not available.")
 
     return PacketDetails(
         "\n".join(lines[:hex_index]).strip(),
@@ -131,13 +131,13 @@ def build_fields_command(
 
 
 def build_display_filter_fields_command(tshark_path: Path) -> list[str]:
-    """Команда для чтения display-filter полей из установленного TShark."""
+    """Command for reading display-filter fields from the installed TShark."""
 
     return [str(tshark_path), "-G", "fields"]
 
 
 def parse_display_filter_fields(output: str) -> tuple[str, ...]:
-    """Вернуть отсортированные имена display-filter протоколов и полей."""
+    """Return sorted display-filter protocol and field names."""
 
     fields: set[str] = set()
     for row in output.splitlines():
@@ -156,7 +156,7 @@ def read_display_filter_fields(
     tshark_path: Path,
     run: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
 ) -> tuple[str, ...]:
-    """Прочитать поддерживаемые display-filter поля из TShark."""
+    """Read supported display-filter fields from TShark."""
 
     try:
         result = run(
@@ -177,18 +177,16 @@ def parse_packet_row(row: str) -> PacketSummary:
     try:
         fields = next(csv.reader([row], delimiter="\t", quotechar='"', strict=True))
     except csv.Error as error:
-        raise TsharkReadError("Некорректная строка TSV в выводе TShark.") from error
+        raise TsharkReadError("Invalid TSV row in TShark output.") from error
     if len(fields) != 11:
-        raise TsharkReadError(
-            "Строка вывода TShark должна содержать ровно одиннадцать полей."
-        )
+        raise TsharkReadError("TShark output rows must contain exactly eleven fields.")
 
     try:
         number = int(fields[0])
         length = int(fields[5])
     except ValueError as error:
         raise TsharkReadError(
-            "Номер или длина пакета в выводе TShark некорректны."
+            "Packet number or length in TShark output is invalid."
         ) from error
 
     return PacketSummary(
@@ -245,7 +243,7 @@ def iter_packet_summaries(
             text=True,
         )
     except OSError as error:
-        raise TsharkReadError(f"Не удалось запустить TShark: {error}") from error
+        raise TsharkReadError(f"Could not start TShark: {error}") from error
 
     assert process.stdout is not None
     assert process.stderr is not None
@@ -277,5 +275,5 @@ def iter_packet_summaries(
 
     if not stopped_early and return_code != 0:
         stderr = "".join(stderr_parts)
-        message = stderr.strip() or f"TShark завершился с кодом {return_code}."
+        message = stderr.strip() or f"TShark exited with code {return_code}."
         raise TsharkReadError(message)

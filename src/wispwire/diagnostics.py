@@ -1,4 +1,4 @@
-"""Сбор сведений для диагностики окружения WispWire."""
+"""Collect environment diagnostics for WispWire."""
 
 import platform
 import re
@@ -17,7 +17,7 @@ INTERFACE_PATTERN = re.compile(r"^\s*\d+\.\s+([^\s(]+)")
 
 @dataclass(frozen=True)
 class DoctorReport:
-    """Сведения о Python и утилитах, нужных для работы WispWire."""
+    """Information about Python and tools required by WispWire."""
 
     python_version: str
     wispwire_version: str
@@ -31,7 +31,7 @@ def list_interfaces(
     dumpcap_path: str | Path = "dumpcap",
     run: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
 ) -> tuple[str, ...]:
-    """Вернуть имена интерфейсов из вывода ``dumpcap -D`` без описаний."""
+    """Return interface names from ``dumpcap -D`` output without descriptions."""
     try:
         result = run(
             [str(dumpcap_path), "-D"],
@@ -59,7 +59,7 @@ def collect_doctor_report(
     sqlite_check: Callable[[], SqliteFeatureStatus] = check_fts5_trigram,
     platform_system: Callable[[], str] = platform.system,
 ) -> DoctorReport:
-    """Собрать статус инструментов без запуска live-захвата."""
+    """Collect tool status without starting live capture."""
     tools = tuple(inspect(name) for name in ("tshark", "dumpcap", "mergecap"))
     tshark = next(tool for tool in tools if tool.name == "tshark")
     dumpcap = next(tool for tool in tools if tool.name == "dumpcap")
@@ -67,19 +67,19 @@ def collect_doctor_report(
     available_interfaces = interfaces() if dumpcap_available else ()
 
     if tshark.path is None or tshark.error is not None:
-        capture_warning = "live-захват недоступен: установите tshark"
+        capture_warning = "live capture is unavailable: install tshark"
     elif not dumpcap_available:
-        capture_warning = "live-захват недоступен: установите dumpcap"
+        capture_warning = "live capture is unavailable: install dumpcap"
     elif not available_interfaces:
         if platform_system() == "Darwin":
             capture_warning = (
-                "live-захват недоступен: dumpcap не вернул доступных интерфейсов. "
-                "На macOS установите права захвата: "
+                "live capture is unavailable: dumpcap returned no available interfaces. "
+                "On macOS, install capture permissions: "
                 "brew install --cask wireshark-chmodbpf"
             )
         else:
             capture_warning = (
-                "live-захват недоступен: dumpcap не вернул доступных интерфейсов"
+                "live capture is unavailable: dumpcap returned no available interfaces"
             )
     else:
         capture_warning = None
@@ -98,7 +98,7 @@ def collect_doctor_report(
 
 
 def _get_wispwire_version() -> str:
-    """Определить версию установленного пакета или исходного дерева."""
+    """Detect the installed package or source-tree version."""
     try:
         return version("wispwire")
     except PackageNotFoundError:
@@ -107,7 +107,7 @@ def _get_wispwire_version() -> str:
             with pyproject_path.open("rb") as pyproject_file:
                 project = tomllib.load(pyproject_file)["project"]
         except (OSError, KeyError, tomllib.TOMLDecodeError):
-            return "неизвестна"
+            return "unknown"
 
         project_version = project.get("version")
-        return project_version if isinstance(project_version, str) else "неизвестна"
+        return project_version if isinstance(project_version, str) else "unknown"

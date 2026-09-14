@@ -12,7 +12,7 @@ from wispwire.sessions import Session, SessionSafetyError, SessionStorage
 from wispwire.tshark import TsharkReadError
 
 
-def packet(number: int, info: str = "Запрос") -> PacketSummary:
+def packet(number: int, info: str = "Request") -> PacketSummary:
     return PacketSummary(number, "0.000000", "192.0.2.1", "192.0.2.53", "DNS", 74, info)
 
 
@@ -59,10 +59,10 @@ def test_live_source_rolls_back_segment_when_tshark_fails_after_packet(
     def iter_summaries(*_args: object, **_kwargs: object) -> Iterator[PacketSummary]:
         nonlocal attempts
         attempts += 1
-        yield packet(1, "первый")
+        yield packet(1, "first")
         if attempts == 1:
-            raise TsharkReadError("TShark оборвал чтение сегмента")
-        yield packet(2, "второй")
+            raise TsharkReadError("TShark interrupted segment reading")
+        yield packet(2, "second")
 
     source = LivePacketSource(
         Path("tshark"),
@@ -70,22 +70,22 @@ def test_live_source_rolls_back_segment_when_tshark_fails_after_packet(
         iter_summaries=iter_summaries,
     )
     try:
-        with pytest.raises(TsharkReadError, match="оборвал чтение"):
+        with pytest.raises(TsharkReadError, match="interrupted segment reading"):
             source.ingest((segment,))
 
         assert source.packet_count == 0
         assert source.query(PacketQuery(limit=10)).packets == ()
 
         assert source.ingest((segment,)) == (
-            packet(1, "первый"),
-            packet(2, "второй"),
+            packet(1, "first"),
+            packet(2, "second"),
         )
         assert source.packet_count == 2
-        assert source.query(PacketQuery(info_query="первый", limit=10)).packets == (
-            packet(1, "первый"),
+        assert source.query(PacketQuery(info_query="first", limit=10)).packets == (
+            packet(1, "first"),
         )
-        assert source.query(PacketQuery(info_query="второй", limit=10)).packets == (
-            packet(2, "второй"),
+        assert source.query(PacketQuery(info_query="second", limit=10)).packets == (
+            packet(2, "second"),
         )
         assert source.ingest((segment,)) == ()
     finally:
@@ -191,7 +191,7 @@ def test_live_source_keeps_index_after_display_filter_error(tmp_path: Path) -> N
         *_args: object, display_filter: str | None = None, **_kwargs: object
     ) -> Iterator[PacketSummary]:
         if display_filter:
-            raise TsharkReadError("Синтаксическая ошибка display filter")
+            raise TsharkReadError("Display filter syntax error")
         return iter([packet(1, "telegram")])
 
     source = LivePacketSource(
@@ -202,7 +202,7 @@ def test_live_source_keeps_index_after_display_filter_error(tmp_path: Path) -> N
     try:
         source.ingest((segment,))
         assert source.query(PacketQuery("udp &&", limit=10)) == PacketQueryResult(
-            (), "Синтаксическая ошибка display filter"
+            (), "Display filter syntax error"
         )
         assert source.query(PacketQuery(info_query="telegram", limit=10)).packets == (
             packet(1, "telegram"),
@@ -283,7 +283,7 @@ def test_live_source_close_reports_cleanup_failure_and_allows_retry(
 
     storage.close_session = close_session
 
-    with pytest.raises(SessionSafetyError, match="закрыть сессию"):
+    with pytest.raises(SessionSafetyError, match="live-source session"):
         source.close()
 
     assert source.session_path == session_path
@@ -318,7 +318,7 @@ def test_live_source_reset_keeps_old_session_and_packets_for_cleanup_retry(
 
     storage.close_session = close_session
     try:
-        with pytest.raises(SessionSafetyError, match="закрыть сессию"):
+        with pytest.raises(SessionSafetyError, match="live-source session"):
             source.reset()
 
         assert source.session_path == old_session_path
@@ -346,11 +346,11 @@ def test_live_source_removes_new_session_when_index_registration_fails(
             return session
 
         def register_file(self, session: Session, path: Path) -> Session:
-            raise SessionSafetyError("не удалось зарегистрировать индекс")
+            raise SessionSafetyError("could not register index")
 
     storage = FailingRegistrationStorage(cache_root=tmp_path / "sessions", pid=123)
 
-    with pytest.raises(SessionSafetyError, match="зарегистрировать индекс"):
+    with pytest.raises(SessionSafetyError, match="register index"):
         LivePacketSource(Path("tshark"), storage)
 
     assert storage.created_session is not None
@@ -369,14 +369,14 @@ def test_live_source_reports_index_creation_cleanup_failure(
             return session
 
         def register_file(self, session: Session, path: Path) -> Session:
-            raise SessionSafetyError("не удалось зарегистрировать индекс")
+            raise SessionSafetyError("could not register index")
 
         def close_session(self, session: Session) -> bool:
             return False
 
     storage = FailingCleanupStorage(cache_root=tmp_path / "sessions", pid=123)
 
-    with pytest.raises(SessionSafetyError, match="закрыть сессию live-источника"):
+    with pytest.raises(SessionSafetyError, match="close live-source session"):
         LivePacketSource(Path("tshark"), storage)
 
     assert storage.created_session is not None

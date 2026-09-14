@@ -8,4 +8,4 @@ def test_cli_shows_russian_help() -> None:
 
     assert result.exit_code == 0
     assert "WispWire" in result.stdout
-    assert "диагностики" in result.stdout
+    assert "diagnostics" in result.stdout

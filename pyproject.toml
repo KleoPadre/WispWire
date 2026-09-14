@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "wispwire"
-version = "0.1.5"
-description = "Терминальная утилита для диагностики сетевого анализа"
+version = "0.1.6"
+description = "Terminal utility for network-analysis diagnostics"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"

@@ -6,8 +6,8 @@ class Wispwire < Formula
 
   desc "Terminal utility for network-analysis diagnostics"
   homepage "https://github.com/KleoPadre/WispWire"
-  url "https://github.com/KleoPadre/WispWire/releases/download/v0.1.5/wispwire-0.1.5.tar.gz"
-  sha256 "e974e1117ff9c2be473b7a45a33aa98a48d14560002486b8611613f04318b920"
+  url "https://github.com/KleoPadre/WispWire/releases/download/v0.1.6/wispwire-0.1.6.tar.gz"
+  sha256 "1a8ca26483c2fdfd27fcb8963479fc03edbf7e9f977c95073a2ff5e420e96e0c"
   license "MIT"
 
   depends_on "python@3.13"
@@ -79,13 +79,13 @@ class Wispwire < Formula
 
   def caveats
     <<~EOS
-      WispWire установлен как терминальная команда:
+      WispWire is installed as a terminal command:
 
         wispwire doctor
         wispwire capture --iface en0
 
-      Formula автоматически устанавливает Wireshark CLI: tshark, dumpcap и mergecap.
-      Если на macOS список интерфейсов пустой, установите права packet capture:
+      The formula automatically installs the Wireshark CLI: tshark, dumpcap, and mergecap.
+      If the interface list is empty on macOS, install packet-capture permissions:
 
         brew install --cask wireshark-chmodbpf
     EOS
@@ -94,8 +94,8 @@ class Wispwire < Formula
   test do
     assert_match "WispWire", shell_output("#{bin}/wispwire --help")
     doctor_output = shell_output("#{bin}/wispwire doctor")
-    assert_match "Диагностика WispWire", doctor_output
+    assert_match "WispWire Diagnostics", doctor_output
     assert_match "tshark", doctor_output
-    refute_match "ОШИБКА", doctor_output
+    refute_match "ERROR", doctor_output
   end
 end

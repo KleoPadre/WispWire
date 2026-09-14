@@ -1,1 +1,1 @@
-"""Пакет WispWire."""
+"""WispWire package."""

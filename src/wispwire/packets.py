@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class PacketDetails:
-    """Подробности одного пакета для представления дерева и дампа."""
+    """Details for rendering one packet tree and dump."""
 
     protocol_tree: str
     hex_ascii: str
@@ -11,7 +11,7 @@ class PacketDetails:
 
 @dataclass(frozen=True)
 class PacketSummary:
-    """Сводка одного пакета для табличного представления."""
+    """Packet summary for table rendering."""
 
     number: int
     relative_time: str

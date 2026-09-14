@@ -1,4 +1,4 @@
-"""Общие helpers для UX Wireshark display filter."""
+"""Shared helpers for Wireshark display-filter UX."""
 
 from __future__ import annotations
 
@@ -7,23 +7,23 @@ from bisect import bisect_left
 
 
 def format_display_filter_error(error: str) -> str:
-    """Сжать ошибку TShark и добавить понятную подсказку для частого случая."""
+    """Compact a TShark error and add a helpful hint for common cases."""
 
     compact = " ".join(line.strip() for line in error.splitlines() if line.strip())
     lowered = compact.lower()
     if '"tcp" is not a valid protocol' in lowered:
-        return "Невалидный display filter. Wireshark ожидает `tcp`, а не `TCP`."
+        return "Invalid display filter. Wireshark expects `tcp`, not `TCP`."
     if '"udp" is not a valid protocol' in lowered:
-        return "Невалидный display filter. Wireshark ожидает `udp`, а не `UDP`."
+        return "Invalid display filter. Wireshark expects `udp`, not `UDP`."
     if "not a valid protocol or protocol field" in lowered:
-        return "Невалидный display filter. Проверьте регистр имени протокола или поля."
+        return "Invalid display filter. Check the protocol or field-name casing."
     if "syntax error" in lowered or "is neither a field nor a protocol name" in lowered:
-        return f"Невалидный display filter: {compact}"
+        return f"Invalid display filter: {compact}"
     return compact
 
 
 def filter_suggestions(value: str, fields: tuple[str, ...]) -> tuple[str, ...]:
-    """Вернуть ближайшие display-filter поля по текущему токену."""
+    """Return nearest display-filter fields for the current token."""
 
     if not fields:
         return ()
@@ -42,7 +42,7 @@ def filter_suggestions(value: str, fields: tuple[str, ...]) -> tuple[str, ...]:
 
 
 def draft_filter_error(value: str, fields: tuple[str, ...]) -> str | None:
-    """Вернуть быструю ошибку для явно неизвестного поля во время ввода."""
+    """Return a quick error for an obviously unknown field while typing."""
 
     if not fields:
         return None
@@ -55,4 +55,4 @@ def draft_filter_error(value: str, fields: tuple[str, ...]) -> str | None:
         return None
     if filter_suggestions(token, fields):
         return None
-    return f"Неизвестное поле display filter: {token}"
+    return f"Unknown display-filter field: {token}"

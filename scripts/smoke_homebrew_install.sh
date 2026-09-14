@@ -2,7 +2,7 @@
 set -euo pipefail
 
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
-version="0.1.5"
+version="0.1.6"
 formula_source="${project_root}/packaging/homebrew/Formula/wispwire.rb"
 work_dir="$(mktemp -d /tmp/wispwire-homebrew-smoke.XXXXXX)"
 dist_dir="${work_dir}/dist"
@@ -42,7 +42,7 @@ sdist_path = Path(sys.argv[2])
 sdist_sha = sys.argv[3]
 formula = formula_path.read_text()
 formula = formula.replace(
-    'url "https://github.com/KleoPadre/WispWire/releases/download/v0.1.5/wispwire-0.1.5.tar.gz"',
+    'url "https://github.com/KleoPadre/WispWire/releases/download/v0.1.6/wispwire-0.1.6.tar.gz"',
     f'url "file://{sdist_path}"',
 )
 formula = re.sub(r'sha256 "[0-9a-f]{64}"', f'sha256 "{sdist_sha}"', formula, count=1)
