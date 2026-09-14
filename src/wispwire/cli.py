@@ -129,7 +129,7 @@ def capture(
             display_filter_fields=display_filter_fields,
             available_interfaces=list_interfaces(),
             runtime_factory=create_runtime,
-        ).run()
+        ).run(mouse=False)
         if saved_path is not None:
             _open_capture_in_tui(saved_path)
     except CaptureError as error:
@@ -186,7 +186,7 @@ def _open_capture_in_tui(
             read_details,
             query_packets=source.query,
             initial_filter=display_filter,
-        ).run()
+        ).run(mouse=False)
     except TsharkReadError as error:
         console.print(f"Не удалось прочитать захват: {error}")
         raise typer.Exit(code=1) from None

@@ -95,6 +95,48 @@ async def test_rebuild_packet_table_preserves_existing_selected_row() -> None:
         assert next(str(value) for value in table.get_row_at(1)) == "2"
 
 
+@pytest.mark.asyncio
+async def test_rebuild_packet_table_uses_fixed_column_widths() -> None:
+    app = WispWireApp((), "sample.pcapng", read_details)
+
+    async with app.run_test():
+        table = app.query_one("#packets", DataTable)
+        rebuild_packet_table(table, (packet(1),), wide=True)
+
+        assert [
+            (str(column.label), column.width, column.auto_width)
+            for column in table.ordered_columns
+        ] == [
+            ("No.", 6, False),
+            ("Time", 12, False),
+            ("Source", 18, False),
+            ("Destination", 18, False),
+            ("URL", 28, False),
+            ("Protocol", 10, False),
+            ("Length", 8, False),
+            ("Info", 54, False),
+        ]
+
+
+@pytest.mark.asyncio
+async def test_rebuild_packet_table_uses_fixed_narrow_column_widths() -> None:
+    app = WispWireApp((), "sample.pcapng", read_details)
+
+    async with app.run_test():
+        table = app.query_one("#packets", DataTable)
+        rebuild_packet_table(table, (packet(1),), wide=False)
+
+        assert [
+            (str(column.label), column.width, column.auto_width)
+            for column in table.ordered_columns
+        ] == [
+            ("No.", 6, False),
+            ("Source", 18, False),
+            ("Protocol", 10, False),
+            ("Info", 52, False),
+        ]
+
+
 def test_render_packet_details_uses_literal_text() -> None:
     details = render_packet_details(
         packet(7, info="[bold]Запрос[/bold]"),
